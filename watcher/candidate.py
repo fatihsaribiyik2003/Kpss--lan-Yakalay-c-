@@ -6,7 +6,7 @@ import json
 import re
 import unicodedata
 
-ANALYSIS_VERSION = 7
+ANALYSIS_VERSION = 8
 CATEGORY_LABELS = {'notice':'Düzeltme / iptal duyurusu','pre_match':'Ön eşleşme', 'review':'Kontrol gerekli',
                    'language':'Dil koşulu var', 'outside':'Profil dışında', 'other':'Alım ilanı değil'}
 ROUTE_LABELS = {'technical':'Mühendis / bilişim', 'general':'Genel memur / idari',
@@ -55,6 +55,7 @@ def _analyze(pages, profile):
     kpss_types=set()
     kpss_years=set()
     experience=False
+    experience_minimums=[]
     certificate=False
     other_degree=False
     mixed_scope=False
@@ -125,7 +126,10 @@ def _analyze(pages, profile):
                 kpss_types.update('P'+m for m in re.findall(r'\bkpss\s*[-/]?\s*p\s*(\d+)\b',value))
                 for listing in re.finditer(r'\bkpss\s*[-/]?\s*(p\s*\d+(?:\s*[,/]|\s+veya|\s+ve)?(?:\s*p\s*\d+\s*[,/]*\s*)*)',value):
                     kpss_types.update('P'+m for m in re.findall(r'p\s*(\d+)',listing.group(1)))
-                kpss_years.update(int(y) for y in re.findall(r'\b(20\d{2})\b',value))
+                # Kanun/ilan tarihleri sınav yılı değildir; yalnız açık KPSS bağlamı.
+                for year_group in re.finditer(r'(?<!\d)(20\d{2}(?:\s*(?:veya|ve|[-/])\s*20\d{2})?)\s*[-/]?\s*(?:yil\w*|tarih\w*)?\s*(?:ait\s*)?(?:yapilan\s*)?(?:kamu\s*personeli\s*secme\s*sinav\w*|kpss)',value):
+                    kpss_years.update(int(y) for y in re.findall(r'20\d{2}',year_group.group(1)))
+                kpss_years.update(int(y) for y in re.findall(r'\bkpss\s*[-/]?\s*[\[(]?\s*(20\d{2})(?!\d)',value))
                 for anchor in re.finditer(r'\bkpss\b',value):
                     window=re.split(r'\byds\b|\byokdil\b|\btoefl\b|yabanci\s*dil|ingilizce',value[anchor.start():anchor.end()+230],maxsplit=1)[0]
                     for m in re.finditer(r'(?:en az|asgari|taban)\s*(\d{2,3}(?:[.,]\d+)?)\s*(?:\([^)]*\)\s*)?puan|taban puan\w*\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)',window):
@@ -136,6 +140,19 @@ def _analyze(pages, profile):
             if re.search(r'tecrube|deneyim',value) and not re.search(r'(?:tecrube|deneyim)[^.;]{0,35}(?:aranma[zm]|sarti yok|gerekmem)',value):
                 experience=True
                 record(number,'Deneyim',re.sub(r'\s+',' ',clause))
+                words={'bir':1,'iki':2,'uc':3,'dort':4,'bes':5,'alti':6,'yedi':7,'sekiz':8,'dokuz':9,'on':10}
+                clause_minimums=[]
+                for requirement in re.finditer(r'(?:en\s*az|asgari)\s*(\d{1,2}(?:[.,]\d+)?|bir|iki|uc|dort|bes|alti|yedi|sekiz|dokuz|on)\s*(?:\([^)]{1,18}\)\s*)?yil',value):
+                    context=value[requirement.end():requirement.end()+180]
+                    before=value[max(0,requirement.start()-65):requirement.start()]
+                    if 'tercihen' in before or not re.search(r'tecrube|deneyim|calis|hizmet',context):
+                        continue
+                    raw=requirement.group(1)
+                    clause_minimums.append(float(words[raw]) if raw in words else float(raw.replace(',','.')))
+                # Ücret tavanına göre 3/5 yıl alternatifleri genel bölümde birlikte yazılabilir.
+                # Ortak alt sınır alınır; açık kadro bölümündeki daha yüksek şart ayrıca uygulanır.
+                if clause_minimums:
+                    experience_minimums.extend([min(clause_minimums)] if 'kat' in value and re.search(r'digerleri|gecmeyecek',value) else clause_minimums)
             if re.search(r'sertifika|surucu belgesi|ehliyet',value) and not re.search(r'(?:sertifika|surucu belgesi|ehliyet)[^.;]{0,30}aranma[zm]',value):
                 certificate=True
                 record(number,'Ek belge',re.sub(r'\s+',' ',clause))
@@ -220,11 +237,16 @@ def _analyze(pages, profile):
                     reasons.append('İlandaki KPSS puan türü ile profiliniz aynı görünmüyor; kontrol gerekli.')
                     if category!='language': category='review'
                 if kpss_years and profile.get('kpss_year') and profile['kpss_year'] not in kpss_years:
-                    reasons.append('KPSS yılı uyumu kontrol edilmeli; ilandaki diğer tarihleri de içerebilir.')
+                    reasons.append(f'İlanda açıkça belirtilen KPSS yılları: {", ".join(str(y) for y in sorted(kpss_years))}; profil yılı {profile["kpss_year"]} ile uyuşmuyor.')
                     if category!='language': category='review'
         if experience:
             reasons.append('Deneyim/tecrübe koşulu var; süresi ve kadro kapsamı kontrol edilmeli.' + (' Deneyim süreniz belirtilmedi.' if profile.get('experience_years') is None else f' Profiliniz: {profile["experience_years"]} yıl.'))
             if category!='language': category='review'
+            if experience_minimums:
+                minimum=max(experience_minimums)
+                reasons.append(f'Bu bölümde tespit edilen en yüksek asgari deneyim koşulu: {minimum:g} yıl.')
+                if profile.get('experience_years') is not None and profile['experience_years']<minimum:
+                    reasons.append('Profildeki deneyim süresi bu bölümün asgari koşulundan düşük; KPSS ön listesinden çıkarıldı.')
         if certificate:
             reasons.append('Sertifika/ehliyet gibi ek belge ifadesi var; sizde bulunduğu varsayılmadı.')
             if category!='language': category='review'
@@ -239,6 +261,10 @@ def _analyze(pages, profile):
     if kpss_scores and profile.get('kpss_score') is not None and profile['kpss_score']<min(kpss_scores):
         kpss_match=False
     if kpss_types and profile.get('kpss_type') and profile['kpss_type'] not in kpss_types:
+        kpss_match=False
+    if kpss_years and profile.get('kpss_year') and profile['kpss_year'] not in kpss_years:
+        kpss_match=False
+    if experience_minimums and profile.get('experience_years') is not None and profile['experience_years']<max(experience_minimums):
         kpss_match=False
     if formal_required and not profile.get('language_certificate'):
         kpss_match=False
@@ -256,6 +282,7 @@ def _analyze(pages, profile):
             'language_document_required':language_document_required,
             'knowledge_required':knowledge_required,'formal_required':formal_required,
             'kpss_types':sorted(kpss_types),'kpss_minimums':sorted(set(kpss_scores)),
+            'kpss_years':sorted(kpss_years),'experience_minimums':sorted(set(experience_minimums)),
             'computer_degree':computer,'general_bachelor':broad,
             'note':'Otomatik ön filtre; kesin başvuru uygunluğu kararı değildir.'}
 

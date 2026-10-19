@@ -10,6 +10,8 @@ Masaüstündeki **KPSS İlan Yakalayıcı** kısayolunu veya bu klasördeki **BA
 
 ## Sana göre ilanlar
 
+Profilini değiştirdikten sonra **Kaydet ve KPSS sonuçlarını göster** düğmesine bas. Uygulama KPSS listesine geçer; eski aramayı/meslek yolu seçimini temizler ve yeniden değerlendirme bitince önceki/sonraki PDF sayısını gösterir. Profil, Tüm ilanlar ve Akademisyen alımları görünümlerini daraltmaz. Deneyimin yoksa **0**, süresini belirtmek istemiyorsan alanı **boş** bırak. Bunlar aynı değildir. Açıkça okunan asgari deneyim ve KPSS sınav yılı uyuşmazlıkları da elenir. Her değişiklik sayıyı değiştirmek zorunda değildir; kayıtlı PDF içindeki uygun görülen kadrolar ve açıklamalar değişebilir.
+
 Başlangıç profili: **Bilgisayar Mühendisliği lisans mezunu, KPSS puanı var, İngilizce bilgisi ve dil belgesi yok**. Kurum türüne göre eleme yapılmaz. Mühendislik/bilişim kadroları ile herhangi bir lisans mezununu kabul eden genel memur/idari kadrolar birlikte değerlendirilir.
 
 **Aday profilim** sekmesinde KPSS puanı, puan türü, sınav yılı ve deneyim süresini istersen doldurabilirsin. Boş alanlar bilinmiyor sayılır; koşulların karşılandığı varsayılmaz. Başlangıçta üç ay sonrası dil öğrenme hedefidir. Hedef tarih geldiğinde profil otomatik değişmez. İngilizce öğrendiğinde **İngilizce bilgim var**, ayrıca geçerli bir sınav sonucu/belge edindiğinde **Dil belgem / sınav sonucum var** kutusunu işaretle. Bunlar ayrı koşullardır.

@@ -1,5 +1,22 @@
 # 1.4 filtre ve başvuru takibi denetimi
 
+## 1.5 profil etki kontrolü
+
+Profil kaydetme akışı KPSS sonuçlarını açacak ve önceki/sonraki sayıyı gösterecek şekilde güncellendi. Önceden yalnız not olarak kalan deneyim ve sınav yılı, açık koşul tespit edilebildiğinde eleme ölçütü oldu. Kanun/ilan tarihi KPSS sınav yılı kabul edilmiyor. Ücret tavanına göre 3/5 yıl gibi alternatiflerde ortak alt sınır ve ayrı kadro koşulları ayırt ediliyor.
+
+Aynı gerçek veri kümesinde, yalnız belirtilen alan değiştirilerek test edildi:
+
+| Test profili değişikliği | KPSS ön adayı PDF |
+|---|---|
+| Deneyim boş; puan/tür/yıl bilinmiyor; dil yok | 3 |
+| Deneyim 0 yıl | 0 |
+| Deneyim 3 yıl | 1 |
+| Deneyim 5 yıl | 3 |
+| Deneyim boş, KPSS yılı 2024 | 0 |
+| Deneyim boş, KPSS yılı 2026 | 3 |
+
+Bu sayılar test senaryolarıdır; kullanıcının gerçek deneyimi veya sınav yılı olarak kaydedilmemiştir. İngilizce bilgisi, dil belgesi, puan ve puan türü için ayrıca bağımsız eşik testleri vardır. İlanında açık taban puan tespit edilmeyen bir PDF, yalnız puan alanı değişti diye elenmeyebilir. Sayı aynı kalıp PDF içindeki kadrolar değişebilir. Profil değişince Tüm ilanlar/akademik/başvuru kayıtları korunur.
+
 Denetim tarihi: 19 Ekim 2026. Sonuçlar bu tarihteki yerel veri kümesi içindir; yeni ilanlarla sayılar değişir.
 
 ## Yöntem ve kapsam

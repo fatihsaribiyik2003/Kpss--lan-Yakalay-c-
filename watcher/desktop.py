@@ -68,6 +68,10 @@ class Desktop:
         self.summary = tk.StringVar()
         self.filter_summary = tk.StringVar()
         self.range_summary = tk.StringVar()
+        self.profile_feedback=tk.StringVar(value='Bu bilgiler KPSS • profilime göre görünümünü etkiler. Değişiklikten sonra kaydet.')
+        self.pending_profile=False
+        self.profile_saved=False
+        self.profile_before_count=0
         self.build_ui()
         self.make_tray()
         if startup:
@@ -130,6 +134,7 @@ class Desktop:
         self.pause_button.pack(side='left',padx=8)
         ttk.Button(controls,text='CSV dışa aktar',command=self.export).pack(side='left')
         ttk.Button(controls,text='Tamamen çık',command=self.quit).pack(side='right')
+        ttk.Label(outer,textvariable=self.status,style='Muted.TLabel',wraplength=1050).pack(side='bottom',anchor='w',pady=(8,0))
         body=ttk.Frame(outer)
         body.pack(fill='both',expand=True)
         sidebar=ttk.Frame(body)
@@ -137,8 +142,10 @@ class Desktop:
         self.calendar=ScanCalendar(sidebar)
         self.calendar.pack(side='bottom',anchor='e')
         tabs=ttk.Notebook(body)
+        self.tabs=tabs
         tabs.pack(side='left',fill='both',expand=True)
         results=ttk.Frame(tabs,padding=10)
+        self.results_tab=results
         errors=ttk.Frame(tabs,padding=10)
         scan_range=ttk.Frame(tabs,padding=18)
         settings=ttk.Frame(tabs,padding=18)
@@ -229,7 +236,6 @@ class Desktop:
         ttk.Button(settings,text='Veri klasörünü aç',command=lambda:os.startfile(self.store.directory)).grid(row=6,column=0,sticky='w')
         self.logview=tk.Text(logs,wrap='word',font=('Consolas',10),relief='flat',padx=8,pady=8)
         self.logview.pack(fill='both',expand=True)
-        ttk.Label(outer,textvariable=self.status,style='Muted.TLabel',wraplength=1080).pack(anchor='w',pady=(12,0))
 
     def build_profile(self,parent):
         profile=self.store.setting('candidate_profile')
@@ -256,14 +262,15 @@ class Desktop:
         ttk.Label(parent,text='Dil öğrenme hedefi (YYYY-AA-GG)').grid(row=5,column=0,sticky='w',pady=6)
         self.language_target=tk.StringVar(value=profile['language_target_date'] or '')
         ttk.Entry(parent,textvariable=self.language_target,width=18).grid(row=5,column=1,sticky='w',padx=12)
-        ttk.Label(parent,text='Mesleki deneyim (yıl, boş = bilinmiyor)').grid(row=6,column=0,sticky='w',pady=6)
+        ttk.Label(parent,text='Mesleki deneyim (yıl; 0 = yok, boş = bilinmiyor)').grid(row=6,column=0,sticky='w',pady=6)
         self.experience=tk.StringVar(value='' if profile['experience_years'] is None else str(profile['experience_years']))
         ttk.Entry(parent,textvariable=self.experience,width=10).grid(row=6,column=1,sticky='w',padx=12)
-        ttk.Button(parent,text='Profili kaydet ve mevcut ilanları filtrele',command=self.save_profile).grid(row=7,column=0,columnspan=2,sticky='w',pady=16)
-        explanation=('İki yol birlikte değerlendirilir: mühendis/bilişim kadroları ve herhangi bir lisans mezununu kabul eden genel memur/idari kadrolar. Kurum türüne göre eleme yapılmaz.\n\n'
-                     'Başlangıçta İngilizce bilgisi ve dil belgesi yok kabul edilir. Hedef tarih geldiğinde bunlar otomatik var sayılmaz; gerçekten edindiğinde ilgili kutuyu işaretle. İngilizce öğrenmek ve sınav belgesi almak ayrı koşullardır.\n\n'
-                     'KPSS puanı/türü/yılı, deneyim veya ek belge bilinmiyorsa karşılandığı varsayılmaz. Aynı PDF’de farklı kadrolar varsa sonuç bir ön filtredir; ilgili kadro satırını ve başvuru tarihlerini doğrula.')
-        ttk.Label(parent,text=explanation,wraplength=630,style='Muted.TLabel').grid(row=8,column=0,columnspan=2,sticky='w')
+        ttk.Button(parent,text='Kaydet ve KPSS sonuçlarını göster',command=self.save_profile).grid(row=7,column=0,columnspan=2,sticky='w',pady=12)
+        ttk.Label(parent,textvariable=self.profile_feedback,wraplength=650,style='Muted.TLabel').grid(row=8,column=0,columnspan=2,sticky='w',pady=(0,10))
+        explanation=('Profil yalnızca KPSS görünümünü daraltır. Tüm ilanlar, akademik duyurular ve başvuru kayıtların korunur.\n\n'
+                     'Boş = bilinmiyor. Puan/tür/yıl ve deneyim yalnızca açıkça okunan şartlarla karşılaştırılır. PDF sayısı aynı kalıp içindeki kadrolar değişebilir.\n\n'
+                     'Dil hedefi bir plandır; otomatik İngilizce/belge kazandırmaz. Sonuçlar ön filtredir.')
+        ttk.Label(parent,text=explanation,wraplength=650,style='Muted.TLabel').grid(row=9,column=0,columnspan=2,sticky='w')
 
     def save_profile(self):
         try:
@@ -288,9 +295,18 @@ class Desktop:
                      'kpss_score':score,'kpss_type':kind,'kpss_year':year,
                      'english_available':self.english_available.get(),'language_certificate':self.has_language.get(),'language_target_date':target,
                      'experience_years':experience}
+            self.profile_before_count=sum(r['assessment']['kpss_match'] for r in self.store.profile_results())
             self.store.set_setting('candidate_profile',profile)
+            self.pending_profile=True
+            self.profile_saved=True
+            self.profile_feedback.set('Profil kaydedildi. Kayıtlı ilanlar yeni bilgilerinle değerlendiriliyor…')
             self.reindex_requested.set()
             self.engine.wake.set()
+            self.list_mode.set('kpss')
+            self.profile_route.set('Her iki yol')
+            self.list_query.set('')
+            self.tabs.select(self.results_tab)
+            self.filter_changed()
             self.status.set('Profil kaydedildi. Kayıtlı metinler yeniden değerlendiriliyor; PDF indirme ve OCR yapılmaz.')
         except (ValueError,TypeError) as exc:
             messagebox.showerror('Profil kaydedilemedi',str(exc),parent=self.root)
@@ -308,7 +324,7 @@ class Desktop:
     def table(self,parent,columns,headings,widths):
         frame=ttk.Frame(parent)
         frame.pack(fill='both',expand=True)
-        tree=ttk.Treeview(frame,columns=columns,show='headings',selectmode='browse',height=6)
+        tree=ttk.Treeview(frame,columns=columns,show='headings',selectmode='browse',height=4)
         for col,heading,width in zip(columns,headings,widths):
             tree.heading(col,text=heading)
             tree.column(col,width=width,minwidth=50)
@@ -330,10 +346,17 @@ class Desktop:
         self.update_range_summary()
         lower,upper=self.store.scan_start().isoformat(),today().isoformat()
         all_rows=self.store.listing_results()
+        if self.pending_profile and all(r['assessment'] is not None for r in all_rows if r['status'] in ('done','partial')):
+            after=sum(bool(r['assessment'] and r['assessment']['kpss_match']) for r in all_rows)
+            self.pending_profile=False
+            message=f'Profil uygulandı: {self.profile_before_count} → {after} KPSS ön adayı PDF.'
+            self.profile_feedback.set(message)
+            self.status.set(message)
         rows=[r for r in all_rows if listing_matches(r,self.list_mode.get(),self.profile_route.get(),self.list_query.get())]
         for mode,label in (('all','Tüm ilanlar'),('kpss','KPSS • profilime göre'),('academic','Akademisyen alımları'),('applied','Başvurduklarım')):
             count=sum(listing_matches(r,mode) for r in all_rows)
-            self.mode_buttons[mode].configure(text=f'{label} ({count})')
+            counter='…' if self.pending_profile and mode in ('kpss','academic') else str(count)
+            self.mode_buttons[mode].configure(text=f'{label} ({counter})')
         self.current_rows={str(r['id']):dict(r) for r in rows}
         snapshot=json.dumps(rows,sort_keys=True,ensure_ascii=True)
         if snapshot!=self.result_snapshot:
@@ -380,6 +403,10 @@ class Desktop:
         if self.list_mode.get()=='kpss' and not self.store.setting('candidate_profile')['has_kpss']:
             hints['kpss']='Profilinde KPSS puanı kapalı. Aday profilim sekmesinden “KPSS puanım var” seçeneğini açıp kaydet.'
         self.filter_summary.set(f"{len(rows)} / {len(all_rows)} ilan • {hints[self.list_mode.get()]}")
+        if self.profile_saved and not self.pending_profile and self.list_mode.get()=='kpss':
+            self.filter_summary.set(f'{len(rows)} / {len(all_rows)} ilan • '+self.profile_feedback.get())
+        if self.pending_profile and self.list_mode.get()=='kpss':
+            self.filter_summary.set('Profil uygulanıyor… Bu sırada sonuçlar geçici olarak boş görünebilir. İndirme/OCR tekrarlanmaz.')
         self.summary.set(f"{len(all_rows)} kayıtlı PDF     •     {counts.get('done',0)+counts.get('partial',0)} okunan PDF     •     {pending} aralıkta bekleyen     •     {len(scanned)} gün tamamlandı")
         log=self.store.directory/'uygulama.log'
         if log.exists():
