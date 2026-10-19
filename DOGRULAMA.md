@@ -1,5 +1,29 @@
 # 1.4 filtre ve başvuru takibi denetimi
 
+## 1.6 alt filtre ve unutulan belge denetimi
+
+Genel KPSS kataloğu ile kişisel uygunluk ön filtresi ayrıldı. Önceki sürümlerin KPSS düğmesi kişisel ön adayları gösteriyordu; 1.6'da bunlar KPSS → Profilime göre altındadır. Genel KPSS sayısının artması kişisel koşulların onaylandığı anlamına gelmez.
+
+112 kayıtlık test kopyasında bütün metinlerde KPSS, açık sınav adı ve OCR kısaltma varyantları, filtre sonuçlarından bağımsız tarandı. Sadece sonuç listesi incelenmedi; dışarıda kalan her adayla karşılaştırıldı. İlk sürümde kaçan İstanbul Teknik Üniversitesi sözleşmeli personel ilanı ve muvazzaf subay temin ilanı yakalanıp tanıma düzeltildi. Nihai katalog, metin taramasındaki 20 KPSS bağlantılı alım/duyurunun tamamını içeriyor. Salt KPSS kelimesi geçen ihale/mevzuat örneklerinin yanlış dahil edilmemesi ayrıca test edildi.
+
+| Alt filtre | Doğrulanan PDF sayısı |
+|---|---|
+| KPSS / Hiçbiri | 20 |
+| KPSS / Mühendislik-bilişim | 13 |
+| KPSS / Düz memur-idari | 7 |
+| KPSS / Diğer kadrolar | 10 |
+| Akademik / Hiçbiri | 31 |
+| Akademik / Mühendislik (tümü) | 19 |
+| Akademik / Bilgisayar Mühendisliği | 11 |
+| Akademik / Yazılım Mühendisliği | 4 |
+| Akademik / Alanı net okunamayanlar | 3 |
+
+PDF'ler birden fazla kadro içerdiği için alt gruplar örtüşür. KPSS alan alt gruplarının birleşimi 20 belgenin tamamını kapsıyor. Akademik alan grupları ve “alanı net okunamayanlar” birleşimi 31 kaydın tamamını kapsıyor. Mühendislik sözcüğü geçen akademik belgelerin tamamı genel mühendislik alt filtresiyle karşılaştırıldı; kontrol edilen veri kümesinde dışarıda kalmış belge yok.
+
+Bilgisayar/Yazılım için alternatif mezuniyet listeleri ve doçentlik alanları ayrıca incelendi. Adana Alparslan Türkeş Bilim ve Teknoloji Üniversitesi belgesinde Yazılım Mühendisliği kadro/bölüm adı bulunurken koşul Bilgisayar Mühendisliği mezuniyetidir; bu belge yalnız bölüm başlığı nedeniyle Yazılım koşulu diye etiketlenmez. KPSS/idari grupta genel ücret paragrafındaki “destek personeli” ifadesinin açılmış kadro sanılması da engellendi.
+
+Akademik etiketler bütün öğrenim dallarını kusursuz çözen bir tablo ayrıştırıcısı değildir. Kesin çıkarılamayan alanlar ayrı görünümde kalır; tüm belgeler filtresiz listede korunur. Bu denetim mevcut veri kümesinde eksik dosya bulmaya yöneliktir; yeni PDF düzenleri/OCR hataları için sıfır hata garantisi değildir. Kaynak metni ve kadro satırını kontrol etmek gerekir.
+
 ## 1.5 profil etki kontrolü
 
 Profil kaydetme akışı KPSS sonuçlarını açacak ve önceki/sonraki sayıyı gösterecek şekilde güncellendi. Önceden yalnız not olarak kalan deneyim ve sınav yılı, açık koşul tespit edilebildiğinde eleme ölçütü oldu. Kanun/ilan tarihi KPSS sınav yılı kabul edilmiyor. Ücret tavanına göre 3/5 yıl gibi alternatiflerde ortak alt sınır ve ayrı kadro koşulları ayırt ediliyor.

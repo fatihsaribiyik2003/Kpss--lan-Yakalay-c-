@@ -10,6 +10,10 @@ Masaüstündeki **KPSS İlan Yakalayıcı** kısayolunu veya bu klasördeki **BA
 
 ## Sana göre ilanlar
 
+**1.6 sürümünde:** KPSS düğmesi artık bütün KPSS ilanlarını açar. Hemen altında **Alt filtre** çubuğu görünür. **Hiçbiri (tüm KPSS)** hepsini gösterir; mühendislik/bilişim, düz memur/idari veya diğer kadroları seçebilirsin. **Profilime göre** seçeneği kişisel puan/dil/deneyim elemesini uygular. Genel KPSS listesinde kendi bölümün dışındaki veya dil şartı bulunan ilanların da görünmesi normaldir.
+
+Akademisyen düğmesine geçince alt seçenekler akademik alanlara dönüşür. **Mühendislik (tümü)** veya Bilgisayar, Yazılım, Makine vb. tanınan alanları seçebilirsin. **Hiçbiri (tüm akademik)** tüm akademik kayıtları, **Alanı net okunamayanlar** ise alanı kesin çıkarılamayanları gösterir. İlan seçerek alan eşleşmesinin dayanak sayfasını/metnini oku; aynı PDF'deki bütün kadroların aynı koşulu taşıdığı varsayılmaz. Ana filtre değiştirilince eski alt seçim taşınmaz.
+
 Profilini değiştirdikten sonra **Kaydet ve KPSS sonuçlarını göster** düğmesine bas. Uygulama KPSS listesine geçer; eski aramayı/meslek yolu seçimini temizler ve yeniden değerlendirme bitince önceki/sonraki PDF sayısını gösterir. Profil, Tüm ilanlar ve Akademisyen alımları görünümlerini daraltmaz. Deneyimin yoksa **0**, süresini belirtmek istemiyorsan alanı **boş** bırak. Bunlar aynı değildir. Açıkça okunan asgari deneyim ve KPSS sınav yılı uyuşmazlıkları da elenir. Her değişiklik sayıyı değiştirmek zorunda değildir; kayıtlı PDF içindeki uygun görülen kadrolar ve açıklamalar değişebilir.
 
 Başlangıç profili: **Bilgisayar Mühendisliği lisans mezunu, KPSS puanı var, İngilizce bilgisi ve dil belgesi yok**. Kurum türüne göre eleme yapılmaz. Mühendislik/bilişim kadroları ile herhangi bir lisans mezununu kabul eden genel memur/idari kadrolar birlikte değerlendirilir.

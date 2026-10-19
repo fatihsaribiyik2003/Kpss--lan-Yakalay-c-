@@ -190,7 +190,7 @@ class ListingFilterTests(unittest.TestCase):
                 row=self.row(title+' Bilgisayar mühendisliği lisans mezunu olmak. YDS en az 70 puan.')
                 self.assertTrue(listing_matches(row,'academic'))
                 self.assertTrue(listing_matches(row,'all'))
-                self.assertFalse(listing_matches(row,'kpss'))
+                self.assertFalse(listing_matches(row,'personal'))
 
     def test_academic_ocr_late_in_text_and_correction_is_not_lost(self):
         for title in ('ÖĞRETİMÜYESİALIMİLANI', 'Öğretim üyesi alınacağına ilişkin düzeltme ilanı.'):
@@ -199,10 +199,10 @@ class ListingFilterTests(unittest.TestCase):
 
     def test_university_admin_hiring_is_kpss_not_academic(self):
         row=self.row('Üniversite Rektörlüğü. Büro personeli alım ilanı. Herhangi bir lisans programından mezun olmak. KPSS P3 en az 70 puan.')
-        self.assertTrue(listing_matches(row,'kpss'))
+        self.assertTrue(listing_matches(row,'personal'))
         self.assertFalse(listing_matches(row,'academic'))
-        self.assertTrue(listing_matches(row,'kpss','Genel memur / idari'))
-        self.assertFalse(listing_matches(row,'kpss','Mühendis / bilişim'))
+        self.assertTrue(listing_matches(row,'personal','Genel memur / idari'))
+        self.assertFalse(listing_matches(row,'personal','Mühendis / bilişim'))
         self.assertTrue(listing_matches(row,'all','Mühendis / bilişim'))
 
     def test_kpss_filter_excludes_wrong_degree_missing_kpss_and_known_mismatch(self):
@@ -216,7 +216,7 @@ class ListingFilterTests(unittest.TestCase):
         ):
             with self.subTest(text=text,profile=profile):
                 row=self.row(text,**profile)
-                self.assertFalse(listing_matches(row,'kpss'))
+                self.assertFalse(listing_matches(row,'personal'))
                 self.assertTrue(listing_matches(row,'all'))
 
     def test_search_is_case_and_turkish_accent_insensitive(self):

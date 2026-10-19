@@ -74,7 +74,7 @@ class ProfileEffects(unittest.TestCase):
             self.assertEqual(profile['kpss_score'],75.5)
             self.assertEqual(profile['experience_years'],0)
             self.assertEqual(app.list_mode.get(),'kpss')
-            self.assertEqual(app.profile_route.get(),'Her iki yol')
+            self.assertEqual(app.profile_route.get(),'Profilime göre')
             self.assertEqual(app.list_query.get(),'')
             app.tabs.select.assert_called_once_with(app.results_tab)
             self.assertTrue(app.pending_profile)

@@ -54,7 +54,7 @@ class FilterRegressions(unittest.TestCase):
                      'Memur alım ilanı. Hukuk lisans mezunu olmak. Bilgisayar kullanabilmek. KPSS P3.'):
             r=self.check(text)
             row={'assessment':r,'title':'Üniversite','applied_at':None}
-            self.assertFalse(listing_matches(row,'kpss'))
+            self.assertFalse(listing_matches(row,'personal'))
             self.assertFalse(listing_matches(row,'academic'))
             self.assertTrue(listing_matches(row,'all'))
 

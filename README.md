@@ -17,6 +17,16 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 
 Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki eksik günleri tamamlar. Aralık dışındaki eski bekleyen dosyalar işlenmez; önceden okunmuş ilanlar korunur. Kontrol aralığı varsayılan olarak 30 dakikadır.
 
+## 1.6 revizyonu: KPSS ve akademik alt filtreler
+
+**KPSS ilanları** artık kişisel profile bakmadan KPSS ile ilgili alım/duyuruları gösterir. Alt filtreler: **Hiçbiri (tüm KPSS)**, **Mühendislik / bilişim**, **Düz memur / idari**, **Diğer kadrolar**, **Profilime göre**. “Hiçbiri” alt filtre uygulamamak demektir; listeyi boşaltmaz. Mühendislik seçimi yalnız Bilgisayar Mühendisliğiyle sınırlı değildir. İdari/destek aileleri farklı öğrenim düzeyleri içerebilir. Bunlar belge türü/alan etiketleridir; başvuru uygunluğu onayı değildir.
+
+Kişisel puan, yıl, dil ve deneyim elemesi **KPSS → Profilime göre** seçeneğinde korunur. Profil kaydetme bu seçeneği açar. Genel KPSS veya akademik listeler kişisel profile göre daralmaz. Kişisel ön filtre sütunu bu nedenle genel listede “Profil dışında” gösterebilir.
+
+**Akademisyen alımları** altında **Hiçbiri (tüm akademik)**, **Mühendislik (tümü)**, kayıtlı belgelerde tanınan alanlar ve **Alanı net okunamayanlar** vardır. Bilgisayar, Yazılım, Makine, Elektrik/Elektronik vb. alanlar için şart ifadesiyle bağlantı aranır. Sadece bölüm başlığı geçmesi yeterli sayılmaz. İlan seçildiğinde eşleşen alan, sayfa ve kaynak metin gösterilir. Aynı PDF farklı kadrolar içerdiğinde birden fazla alanda listelenebilir; iptal/düzeltme etiketleri korunur. Alanı çıkarılamayan kayıtlar silinmez.
+
+Alt filtreler ana görünüm değişince sıfırlanır. Arama seçili alt filtreyi daraltır; Filtreleri temizle bütün kayıtları geri getirir. Profil yeniden hesaplanırken profil bağımsız katalog bilgisi korunur. Gerçek veri üzerinde, çıkan sonuçların yanında dışarıda kalmış belgeler de denetlendi; ayrıntılar [doğrulama raporundadır](DOGRULAMA.md).
+
 ## 1.5 revizyonu: profilin sonuçlara etkisi
 
 **Aday profilim** sayfasındaki **Kaydet ve KPSS sonuçlarını göster** düğmesi bilgileri kaydeder, eski arama/kadro yolu kısıtlarını temizler ve KPSS görünümünü açar. Yeniden değerlendirme ilerlemesi ve önceki/sonraki PDF sayısı gösterilir. Bütün ilanlar, akademik duyurular ve başvuru kayıtları korunur.

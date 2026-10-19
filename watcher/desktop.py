@@ -21,6 +21,7 @@ from .core import Store, Engine, today
 from .calendar_widget import ScanCalendar
 from .access import OwnerVault
 from .candidate import CATEGORY_LABELS, ROUTE_LABELS, listing_matches
+from .catalog import KPSS_OPTIONS,ACADEMIC_ALL,ACADEMIC_ENGINEERING,ACADEMIC_UNKNOWN
 
 
 def autostart(enabled):
@@ -68,7 +69,7 @@ class Desktop:
         self.summary = tk.StringVar()
         self.filter_summary = tk.StringVar()
         self.range_summary = tk.StringVar()
-        self.profile_feedback=tk.StringVar(value='Bu bilgiler KPSS • profilime göre görünümünü etkiler. Değişiklikten sonra kaydet.')
+        self.profile_feedback=tk.StringVar(value='Bu bilgiler KPSS → Profilime göre alt seçeneğini etkiler. Değişiklikten sonra kaydet.')
         self.pending_profile=False
         self.profile_saved=False
         self.profile_before_count=0
@@ -160,24 +161,29 @@ class Desktop:
         filters=ttk.Frame(results)
         filters.pack(fill='x',pady=(0,8))
         self.list_mode=tk.StringVar(value='all')
-        self.profile_route=tk.StringVar(value='Her iki yol')
+        self.profile_route=tk.StringVar(value=KPSS_OPTIONS[0])
+        self.filter_mode='all'
         self.list_query=tk.StringVar()
         self.mode_buttons={}
-        for value,label in (('all','Tüm ilanlar'),('kpss','KPSS • profilime göre'),('academic','Akademisyen alımları'),('applied','Başvurduklarım')):
+        for value,label in (('all','Tüm ilanlar'),('kpss','KPSS ilanları'),('academic','Akademisyen alımları'),('applied','Başvurduklarım')):
             button=ttk.Radiobutton(filters,text=label,value=value,variable=self.list_mode,style='Filter.TRadiobutton',command=self.filter_changed)
             button.pack(side='left',padx=(0,5))
             self.mode_buttons[value]=button
+        self.subfilter_bar=ttk.Frame(results)
+        ttk.Label(self.subfilter_bar,text='Alt filtre:').pack(side='left',padx=(0,8))
+        self.route_input=ttk.Combobox(self.subfilter_bar,textvariable=self.profile_route,values=KPSS_OPTIONS,state='disabled',width=34)
+        self.route_input.pack(side='left',fill='x',expand=True)
+        self.route_input.bind('<<ComboboxSelected>>',self.filter_changed)
+        ttk.Label(self.subfilter_bar,text='Hiçbiri = tümü',style='Muted.TLabel').pack(side='left',padx=(8,0))
         searchbar=ttk.Frame(results)
+        self.searchbar=searchbar
         searchbar.pack(fill='x',pady=(0,8))
         ttk.Label(searchbar,text='İlan ara:').pack(side='left',padx=(0,6))
         ttk.Entry(searchbar,textvariable=self.list_query,width=20).pack(side='left',fill='x',expand=True)
         self.list_query.trace_add('write',lambda *_: self.refresh())
-        self.route_input=ttk.Combobox(searchbar,textvariable=self.profile_route,values=('Her iki yol','Mühendis / bilişim','Genel memur / idari'),state='disabled',width=21)
-        self.route_input.pack(side='left',padx=8)
-        self.route_input.bind('<<ComboboxSelected>>',self.filter_changed)
-        ttk.Button(searchbar,text='Filtreleri temizle',command=self.clear_filters).pack(side='left')
+        ttk.Button(searchbar,text='Filtreleri temizle',command=self.clear_filters).pack(side='left',padx=(8,0))
         ttk.Label(results,textvariable=self.filter_summary,style='Muted.TLabel',wraplength=760).pack(anchor='w',pady=(0,6))
-        self.tree=self.table(results,('date','title','route','assessment','application','pages'),('Tarih','Kurum / ilan','İlan alanı','Değerlendirme','Başvuru','Sayfa'),(85,270,140,150,100,60))
+        self.tree=self.table(results,('date','title','route','assessment','application','pages'),('Tarih','Kurum / ilan','İlan alanı','Kişisel ön filtre','Başvuru','Sayfa'),(85,270,140,150,100,60))
         self.tree.bind('<<TreeviewSelect>>',self.details)
         self.tree.bind('<Double-1>',lambda event:self.open_pdf())
         detail_frame=ttk.Frame(results)
@@ -265,9 +271,9 @@ class Desktop:
         ttk.Label(parent,text='Mesleki deneyim (yıl; 0 = yok, boş = bilinmiyor)').grid(row=6,column=0,sticky='w',pady=6)
         self.experience=tk.StringVar(value='' if profile['experience_years'] is None else str(profile['experience_years']))
         ttk.Entry(parent,textvariable=self.experience,width=10).grid(row=6,column=1,sticky='w',padx=12)
-        ttk.Button(parent,text='Kaydet ve KPSS sonuçlarını göster',command=self.save_profile).grid(row=7,column=0,columnspan=2,sticky='w',pady=12)
+        ttk.Button(parent,text='Kaydet ve profilime göre adayları göster',command=self.save_profile).grid(row=7,column=0,columnspan=2,sticky='w',pady=12)
         ttk.Label(parent,textvariable=self.profile_feedback,wraplength=650,style='Muted.TLabel').grid(row=8,column=0,columnspan=2,sticky='w',pady=(0,10))
-        explanation=('Profil yalnızca KPSS görünümünü daraltır. Tüm ilanlar, akademik duyurular ve başvuru kayıtların korunur.\n\n'
+        explanation=('Profil yalnızca KPSS → Profilime göre seçeneğini daraltır. Genel KPSS, akademik duyurular ve başvuru kayıtların korunur.\n\n'
                      'Boş = bilinmiyor. Puan/tür/yıl ve deneyim yalnızca açıkça okunan şartlarla karşılaştırılır. PDF sayısı aynı kalıp içindeki kadrolar değişebilir.\n\n'
                      'Dil hedefi bir plandır; otomatik İngilizce/belge kazandırmaz. Sonuçlar ön filtredir.')
         ttk.Label(parent,text=explanation,wraplength=650,style='Muted.TLabel').grid(row=9,column=0,columnspan=2,sticky='w')
@@ -303,7 +309,8 @@ class Desktop:
             self.reindex_requested.set()
             self.engine.wake.set()
             self.list_mode.set('kpss')
-            self.profile_route.set('Her iki yol')
+            self.profile_route.set('Profilime göre')
+            self.filter_mode='kpss'
             self.list_query.set('')
             self.tabs.select(self.results_tab)
             self.filter_changed()
@@ -312,12 +319,25 @@ class Desktop:
             messagebox.showerror('Profil kaydedilemedi',str(exc),parent=self.root)
 
     def filter_changed(self,event=None):
-        self.route_input.configure(state='readonly' if self.list_mode.get()=='kpss' else 'disabled')
+        mode=self.list_mode.get()
+        if mode=='academic':
+            fields=sorted({f for r in self.store.listing_results() for f in r['catalog'].get('academic_fields',[])})
+            options=(ACADEMIC_ALL,ACADEMIC_ENGINEERING,*fields,ACADEMIC_UNKNOWN)
+        else:
+            options=KPSS_OPTIONS
+        if mode!=self.filter_mode or self.profile_route.get() not in options:
+            self.profile_route.set(options[0])
+        self.filter_mode=mode
+        if mode in ('kpss','academic'):
+            self.subfilter_bar.pack(fill='x',pady=(0,8),before=self.searchbar)
+        else:
+            self.subfilter_bar.pack_forget()
+        self.route_input.configure(values=options,state='readonly' if mode in ('kpss','academic') else 'disabled')
         self.refresh()
 
     def clear_filters(self):
         self.list_mode.set('all')
-        self.profile_route.set('Her iki yol')
+        self.profile_route.set(KPSS_OPTIONS[0])
         self.list_query.set('')
         self.filter_changed()
 
@@ -346,6 +366,9 @@ class Desktop:
         self.update_range_summary()
         lower,upper=self.store.scan_start().isoformat(),today().isoformat()
         all_rows=self.store.listing_results()
+        if self.list_mode.get()=='academic':
+            fields=sorted({f for r in all_rows for f in r['catalog'].get('academic_fields',[])})
+            self.route_input.configure(values=(ACADEMIC_ALL,ACADEMIC_ENGINEERING,*fields,ACADEMIC_UNKNOWN))
         if self.pending_profile and all(r['assessment'] is not None for r in all_rows if r['status'] in ('done','partial')):
             after=sum(bool(r['assessment'] and r['assessment']['kpss_match']) for r in all_rows)
             self.pending_profile=False
@@ -353,9 +376,9 @@ class Desktop:
             self.profile_feedback.set(message)
             self.status.set(message)
         rows=[r for r in all_rows if listing_matches(r,self.list_mode.get(),self.profile_route.get(),self.list_query.get())]
-        for mode,label in (('all','Tüm ilanlar'),('kpss','KPSS • profilime göre'),('academic','Akademisyen alımları'),('applied','Başvurduklarım')):
+        for mode,label in (('all','Tüm ilanlar'),('kpss','KPSS ilanları'),('academic','Akademisyen alımları'),('applied','Başvurduklarım')):
             count=sum(listing_matches(r,mode) for r in all_rows)
-            counter='…' if self.pending_profile and mode in ('kpss','academic') else str(count)
+            counter='…' if self.pending_profile and mode=='kpss' and not any(r['catalog'] for r in all_rows) else str(count)
             self.mode_buttons[mode].configure(text=f'{label} ({counter})')
         self.current_rows={str(r['id']):dict(r) for r in rows}
         snapshot=json.dumps(rows,sort_keys=True,ensure_ascii=True)
@@ -366,9 +389,13 @@ class Desktop:
             for row in rows:
                 review=row['assessment']
                 state={'pending':'Okuma bekliyor','processing':'Okunuyor…','error':'Yeniden denenecek','done':'Değerlendiriliyor…','partial':'OCR kontrolü'}.get(row['status'],'Bekliyor')
-                area='Akademik alım' if review and review.get('academic_hiring') else (ROUTE_LABELS[review['route']] if review else 'Henüz belirlenmedi')
-                if review and review.get('notice_kind') in ('cancel','correction'):
-                    area='İptal duyurusu' if review['notice_kind']=='cancel' else 'Düzeltme duyurusu'
+                info=review or row['catalog']
+                area='Akademik alım' if row['catalog'].get('academic') else (ROUTE_LABELS[review['route']] if review else 'Henüz belirlenmedi')
+                if row['catalog'].get('kpss_related') and not (self.list_mode.get()=='kpss' and self.profile_route.get()=='Profilime göre'):
+                    jobs=row['catalog'].get('jobs',[])
+                    area='Birden fazla alan' if len(jobs)>1 else {'engineering':'Mühendislik / bilişim','admin':'İdari / destek','other':'Diğer kadrolar'}.get(jobs[0] if jobs else '',area)
+                if info.get('notice_kind') in ('cancel','correction'):
+                    area='İptal duyurusu' if info['notice_kind']=='cancel' else 'Düzeltme duyurusu'
                 self.tree.insert('','end',iid=str(row['id']),values=(row['day'],row['title'],area,CATEGORY_LABELS[review['category']] if review else state,'Başvuruldu' if row['applied_at'] else '—',row['hit_pages']))
             if selected and selected[0] in self.current_rows:
                 self.tree.selection_set(selected[0])
@@ -397,15 +424,18 @@ class Desktop:
             for row in days:
                 self.errors.insert('','end',values=(row['day'],'İlan dizini','Yeniden denenecek' if lower<=row['day']<=upper else 'Aralık dışında',row['error']))
         hints={'all':'Filtresiz görünüm: keşfedilen tüm ilanlar; okunmayı bekleyenler dahil.',
-               'kpss':'KPSS ve mezuniyetine göre ön eşleşmeler. Puan/yıl ve özel şartlar belirsizse kontrol notunu oku; kesin atama garantisi değildir.',
+               'kpss':'KPSS alımları; Hiçbiri = alt filtre yok. Kişisel uygunluk için Profilime göre seç. Bu liste başvuru uygunluğu onayı değildir.',
                'academic':'Akademik alımlar ve ilgili düzeltme/iptal duyuruları; duyuru türünü kontrol et. Kişisel profil bu listeyi sınırlamaz.',
                'applied':'Başvurdum olarak işaretlediğin ilanlar. Profil ve tarama aralığı değişse de bu kayıtlar korunur.'}
-        if self.list_mode.get()=='kpss' and not self.store.setting('candidate_profile')['has_kpss']:
+        personal=self.list_mode.get()=='kpss' and self.profile_route.get()=='Profilime göre'
+        if personal:
+            hints['kpss']='Kişisel profil ön filtresi; puan, yıl, dil ve deneyim koşulları değerlendirilir. Özel şartlar ayrıca kontrol edilir.'
+        if personal and not self.store.setting('candidate_profile')['has_kpss']:
             hints['kpss']='Profilinde KPSS puanı kapalı. Aday profilim sekmesinden “KPSS puanım var” seçeneğini açıp kaydet.'
         self.filter_summary.set(f"{len(rows)} / {len(all_rows)} ilan • {hints[self.list_mode.get()]}")
-        if self.profile_saved and not self.pending_profile and self.list_mode.get()=='kpss':
+        if self.profile_saved and not self.pending_profile and personal:
             self.filter_summary.set(f'{len(rows)} / {len(all_rows)} ilan • '+self.profile_feedback.get())
-        if self.pending_profile and self.list_mode.get()=='kpss':
+        if self.pending_profile and personal:
             self.filter_summary.set('Profil uygulanıyor… Bu sırada sonuçlar geçici olarak boş görünebilir. İndirme/OCR tekrarlanmaz.')
         self.summary.set(f"{len(all_rows)} kayıtlı PDF     •     {counts.get('done',0)+counts.get('partial',0)} okunan PDF     •     {pending} aralıkta bekleyen     •     {len(scanned)} gün tamamlandı")
         log=self.store.directory/'uygulama.log'
@@ -455,8 +485,18 @@ class Desktop:
             text+='\n'.join('• '+reason for reason in review['reasons'])
             text+='\n\nDayanaklar:\n'+'\n\n'.join(f"Sayfa {e['page']} • {e['kind']}\n{e['text']}" for e in review['evidence'])
             text+='\n\n'+review['note']+'\n\nEk kelime işaretleri:\n'
-        elif item:
+        catalog=item.get('catalog',{}) if item else {}
+        academic_text=''
+        if catalog.get('academic'):
+            fields=catalog.get('academic_fields',[])
+            academic_text='Akademik aranan alan etiketleri: '+(', '.join(fields) if fields else 'Alan net okunamadı; belgeyi kontrol et.')
+            evidence=catalog.get('academic_field_evidence',[])
+            if self.list_mode.get()=='academic' and self.profile_route.get() in fields:
+                evidence=[e for e in evidence if e['field']==self.profile_route.get()]
+            academic_text+='\n\n'+'\n\n'.join(f"Sayfa {e['page']} • {e['field']}\n{e['text']}" for e in evidence)+'\n\n'
+        if not review and item:
             text=f"{item['title']} • {item['day']}\nBu PDF henüz değerlendirilmedi. İlan tüm kayıtlar görünümünde korunur. Resmî kaynaktan açabilir veya otomatik okumanın tamamlanmasını bekleyebilirsin.\n{item['error'] or ''}"
+        text=academic_text+text
         text+='\n\n'.join(f"Sayfa {r['page']} • {r['term']}\n…{r['excerpt']}…" for r in rows)
         if item and item['applied_at']:
             text='BAŞVURULDU • İşaretleme tarihi: '+item['applied_at'][:10]+'\nBu işaret senin kaydındır; kurumun başvuru onayı değildir.\n\n'+text

@@ -5,8 +5,9 @@ import hashlib
 import json
 import re
 import unicodedata
+from .catalog import build_catalog,ACADEMIC_ALL,ACADEMIC_ENGINEERING,ACADEMIC_UNKNOWN
 
-ANALYSIS_VERSION = 8
+ANALYSIS_VERSION = 9
 CATEGORY_LABELS = {'notice':'Düzeltme / iptal duyurusu','pre_match':'Ön eşleşme', 'review':'Kontrol gerekli',
                    'language':'Dil koşulu var', 'outside':'Profil dışında', 'other':'Alım ilanı değil'}
 ROUTE_LABELS = {'technical':'Mühendis / bilişim', 'general':'Genel memur / idari',
@@ -169,6 +170,7 @@ def _analyze(pages, profile):
     hiring |= bool(re.search(r'(?:muhendis|programci|uzman(?: yardimcisi)?|buro personeli|bilgisayar isletmeni)\w*\s+(?:alim|alinacak)',head))
     hiring |= bool(re.search(r'(?:uzman|mufettis|denetci|avukat)[^.;]{0,90}(?:girissinaviilani|sinavilani|alimilani)',re.sub(r'\s+','',head)))
     hiring |= academic or ('kpss' in text and 'mezun' in text and (technical or general))
+    hiring |= bool('kpss' in text and re.search(r'sozlesmeli\s*personel|subay\s*temin',head))
     route='mixed' if (technical or computer) and (general or broad) else ('technical' if technical or computer else ('general' if general or broad else 'unknown'))
     reasons=[]
     category='review'
@@ -324,7 +326,9 @@ def analyze(pages, profile):
             titles.append(re.sub(r'\s+',' ',joined[role.start():role.end()]).strip().rstrip('(').strip())
     outcomes=[_analyze(block,profile) for block in blocks] or [_analyze([],profile)]
     if len(outcomes)==1:
-        return outcomes[0]
+        result=outcomes[0]
+        result['catalog']=build_catalog(pages,result,norm)
+        return result
     eligible=[r for r in outcomes if r['kpss_match']]
     result=dict(eligible[0] if eligible else outcomes[0])
     result['academic_hiring']=any(r['academic_hiring'] for r in outcomes)
@@ -336,22 +340,35 @@ def analyze(pages, profile):
         result['reasons'].insert(1,'KPSS ön filtresinde kalan bölümler: '+'; '.join(title for title,r in zip(titles,outcomes) if r['kpss_match']))
     result['evidence']=[e for r in (eligible or outcomes) for e in r['evidence']][:36]
     result['pages']=sorted({e['page'] for e in result['evidence']})
+    result['catalog']=build_catalog(pages,result,norm)
     return result
 
 
-def listing_matches(item, mode='all', route='Her iki yol', query=''):
+def listing_matches(item, mode='all', route='Hiçbiri (tüm KPSS)', query=''):
     """Liste görünümü; filtresiz modda okunmamış kayıtlar da görünür."""
     review=item.get('assessment') or {}
+    catalog=item.get('catalog') or review.get('catalog') or {}
     if mode=='applied' and not item.get('applied_at'):
         return False
-    if mode=='kpss':
+    if mode=='kpss' and route=='Profilime göre':
+        mode='personal'
+    if mode=='personal':
         if not review.get('kpss_match'):
             return False
         if route=='Mühendis / bilişim' and review.get('route') not in ('technical','mixed'):
             return False
         if route=='Genel memur / idari' and review.get('route') not in ('general','mixed'):
             return False
-    elif mode=='academic' and not review.get('academic_hiring'):
-        return False
+    elif mode=='kpss':
+        if not catalog.get('kpss_related'):
+            return False
+        needed={'Mühendislik / bilişim':'engineering','Düz memur / idari':'admin','Diğer kadrolar':'other'}.get(route)
+        if needed and needed not in catalog.get('jobs',[]): return False
+    elif mode=='academic':
+        if not catalog.get('academic',review.get('academic_hiring')): return False
+        fields=catalog.get('academic_fields',[])
+        if route==ACADEMIC_ENGINEERING and not catalog.get('academic_engineering'): return False
+        if route==ACADEMIC_UNKNOWN and fields: return False
+        if route not in (ACADEMIC_ALL,ACADEMIC_ENGINEERING,ACADEMIC_UNKNOWN,'Her iki yol','Hiçbiri (tüm KPSS)') and route not in fields: return False
     needle=norm(query.strip())
     return not needle or needle in norm(' '.join(str(item.get(key) or '') for key in ('title','day','terms')))

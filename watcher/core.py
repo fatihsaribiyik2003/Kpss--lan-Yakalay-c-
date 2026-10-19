@@ -205,10 +205,12 @@ class Store:
         with self.connect() as db:
             rows=[dict(r) for r in db.execute('''SELECT d.*,a.applied_at FROM documents d
               LEFT JOIN applications a ON a.doc=d.id ORDER BY d.day DESC,d.id DESC''')]
+            catalogs={r['doc']:json.loads(r['payload']).get('catalog',{}) for r in db.execute('SELECT doc,payload FROM candidate_reviews WHERE version=?',(ANALYSIS_VERSION,))}
         reviews={r['id']:r for r in self.profile_results()}
         for row in rows:
             result=reviews.get(row['id'])
             row.update(assessment=result['assessment'] if result else None,
+                       catalog=catalogs.get(row['id'],{}),
                        terms=result['terms'] if result else '',
                        hit_pages=result['hit_pages'] if result else '')
         return rows
