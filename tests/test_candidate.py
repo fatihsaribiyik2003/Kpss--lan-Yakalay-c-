@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from watcher.candidate import analyze, default_profile
+from watcher.candidate import analyze, default_profile, listing_matches
 from watcher.core import Store, Engine, today
 
 
@@ -141,6 +141,18 @@ class CandidateTests(unittest.TestCase):
 
 
 class ProfileStorageTests(unittest.TestCase):
+    def test_all_list_keeps_pending_and_unrelated_documents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=Store(directory)
+            with store.connect() as db:
+                db.execute("INSERT INTO documents(url,day,title) VALUES(?,?,?)",('https://example.org/pending.pdf',today().isoformat(),'Okunmamış duyuru'))
+            rows=store.listing_results()
+            self.assertEqual(len(rows),1)
+            self.assertIsNone(rows[0]['assessment'])
+            self.assertTrue(listing_matches(rows[0]))
+            self.assertFalse(listing_matches(rows[0],'kpss'))
+            self.assertFalse(listing_matches(rows[0],'academic'))
+
     def test_cached_non_keyword_document_is_classified_without_download_or_ocr(self):
         with tempfile.TemporaryDirectory() as directory:
             store=Store(directory)
@@ -163,6 +175,55 @@ class ProfileStorageTests(unittest.TestCase):
                 for handler in engine.log.handlers[:]:
                     handler.close()
                     engine.log.removeHandler(handler)
+
+
+class ListingFilterTests(unittest.TestCase):
+    def row(self,text,**profile):
+        candidate=default_profile(dt.date(2026,10,19))
+        candidate.update(profile)
+        return {'title':'Üniversite duyurusu','day':'2026-10-19','terms':'',
+                'assessment':analyze([{'page':1,'text':text,'quality':'ok'}],candidate)}
+
+    def test_academic_hiring_visible_despite_bachelor_profile(self):
+        for title in ('Öğretim üyesi alım ilanı.','Öğretim elemanı alınacaktır.','Araştırma görevlisi alım ilanı.','Doktor öğretim üyesi alınacaktır.'):
+            with self.subTest(title=title):
+                row=self.row(title+' Bilgisayar mühendisliği lisans mezunu olmak. YDS en az 70 puan.')
+                self.assertTrue(listing_matches(row,'academic'))
+                self.assertTrue(listing_matches(row,'all'))
+                self.assertFalse(listing_matches(row,'kpss'))
+
+    def test_academic_ocr_late_in_text_and_correction_is_not_lost(self):
+        for title in ('ÖĞRETİMÜYESİALIMİLANI', 'Öğretim üyesi alınacağına ilişkin düzeltme ilanı.'):
+            row=self.row(('Bozuk tablo sıralaması. '*200)+title)
+            self.assertTrue(listing_matches(row,'academic'))
+
+    def test_university_admin_hiring_is_kpss_not_academic(self):
+        row=self.row('Üniversite Rektörlüğü. Büro personeli alım ilanı. Herhangi bir lisans programından mezun olmak. KPSS P3 en az 70 puan.')
+        self.assertTrue(listing_matches(row,'kpss'))
+        self.assertFalse(listing_matches(row,'academic'))
+        self.assertTrue(listing_matches(row,'kpss','Genel memur / idari'))
+        self.assertFalse(listing_matches(row,'kpss','Mühendis / bilişim'))
+        self.assertTrue(listing_matches(row,'all','Mühendis / bilişim'))
+
+    def test_kpss_filter_excludes_wrong_degree_missing_kpss_and_known_mismatch(self):
+        for text,profile in (
+            ('Memur alım ilanı. Hukuk lisans mezunu olmak. KPSS P3.',{}),
+            ('Mühendis alım ilanı. Bilgisayar mühendisliği lisans mezunu olmak.',{}),
+            ('Memur alım ilanı. Aranan nitelik 4001. KPSS P3 en az 80 puan.',{'kpss_score':65}),
+            ('Memur alım ilanı. Aranan nitelik 4001. KPSS P1.',{'kpss_type':'P3'}),
+            ('Mühendis alım ilanı. Bilgisayar mühendisliği lisans mezunu olmak. KPSS P3. YDS en az 80 puan.',{}),
+            ('Memur alım ilanı. Aranan nitelik 4001. KPSS P3.',{'has_kpss':False}),
+        ):
+            with self.subTest(text=text,profile=profile):
+                row=self.row(text,**profile)
+                self.assertFalse(listing_matches(row,'kpss'))
+                self.assertTrue(listing_matches(row,'all'))
+
+    def test_search_is_case_and_turkish_accent_insensitive(self):
+        row=self.row('Duyuru.')
+        self.assertTrue(listing_matches(row,query='UNIVERSITE'))
+        self.assertTrue(listing_matches(row,query='2026-10-19'))
+        self.assertFalse(listing_matches(row,query='belediye'))
 
 
 if __name__=='__main__':

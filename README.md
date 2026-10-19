@@ -17,13 +17,23 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 
 Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki eksik günleri tamamlar. Aralık dışındaki eski bekleyen dosyalar işlenmez; önceden okunmuş ilanlar korunur. Kontrol aralığı varsayılan olarak 30 dakikadır.
 
+## 1.3 revizyonu: ilan listesindeki filtre çubuğu
+
+**İlanlar / PDF’ler** sekmesinde üç düğmeli filtre çubuğu bulunur:
+
+- **Tüm ilanlar:** her açılışta varsayılandır. Profile uymayanlar ve okunmayı bekleyenler dahil bütün keşfedilen PDF bağlantıları listelenir. İndirilmemiş PDF çift tıklanınca resmî bağlantıdan açılır.
+- **KPSS • profilime göre:** KPSS ifadesi ve bilgisayar mühendisliği/genel lisans kabulü bulunan alımlar gösterilir. Bilinen puan/puan türü uyumsuzlukları ve karşılanmayan zorunlu dil koşulu elenir. Bilinmeyen puan, yıl, deneyim ve karışık kadro şartları kontrol notlarıyla gösterilebilir. Kesin atama garantisi vermez. Meslek yolu bu görünümde ayrıca seçilebilir.
+- **Akademisyen alımları:** akademik alım ifadeleri aranır; kişisel lisans/dil profili bu listeyi daraltmaz. Üniversitelerin idari personel alımları tek başına akademik ilan sayılmaz. OCR/metin tanıma hataları olabilir; bütün belgeler Tüm ilanlar görünümünde korunur.
+
+Düğmeler kayıt sayılarını gösterir. Başlık, tarih ve ek kelime işaretlerinde arama yapılabilir. **Filtreleri temizle**, aramayı ve kadro yolunu da sıfırlayıp tüm kayıtları gösterir. CSV yalnızca görünen listeyi aktarır. Filtreler tarama aralığını değiştirmez. Kişisel bilgiler **Aday profilim** sekmesinde düzenlenir.
+
 ## 1.2 revizyonu: aday profiline göre filtre
 
-**Profil / Filtre** sekmesinde diploma Bilgisayar Mühendisliği lisans olarak tanımlıdır. KPSS puanı olduğu varsayılır; sayısal puan, puan türü ve sınav yılı başlangıçta bilinmiyor bırakılır. İstenirse doldurulabilir. Deneyim süresi de bilinmiyor kabul edilir; sertifika veya ehliyetin bulunduğu varsayılmaz.
+**Aday profilim** sekmesinde diploma Bilgisayar Mühendisliği lisans olarak tanımlıdır. KPSS puanı olduğu varsayılır; sayısal puan, puan türü ve sınav yılı başlangıçta bilinmiyor bırakılır. İstenirse doldurulabilir. Deneyim süresi de bilinmiyor kabul edilir; sertifika veya ehliyetin bulunduğu varsayılmaz.
 
 İngilizce bilgisi ve dil belgesi ayrı kutulardır; ikisi de başlangıçta kapalıdır. Üç ay sonrası dil öğrenme hedefi olarak kaydedilir. Bu tarih geldiğinde İngilizce veya belge otomatik kazanılmış sayılmaz; kullanıcı gerçekten edindiğinde günceller. İngilizce öğrenmek tek başına YDS/TOEFL gibi bir belge/puan şartını karşıladığı anlamına gelmez.
 
-Sonuçlarda **Ön eşleşme**, **Kontrol gerekli**, **Dil koşulu var**, **Profil dışında** ve **Alım ilanı değil** ayrımı vardır. Varsayılan görünüm ön eşleşmeleri ve kontrol gerekenleri birlikte gösterir. Meslek yolu **Mühendis / bilişim**, **Genel memur / idari** veya **Her iki yol** olarak seçilebilir; kurum türüne göre eleme yapılmaz.
+Sonuçlarda **Ön eşleşme**, **Kontrol gerekli**, **Dil koşulu var**, **Profil dışında** ve **Alım ilanı değil** ayrımı vardır. KPSS görünümü mezuniyet/KPSS dayanağı olan ön eşleşmeleri ve kontrol gerekenleri gösterir; varsayılan Tüm ilanlar görünümü kayıtları gizlemez. Meslek yolu **Mühendis / bilişim**, **Genel memur / idari** veya **Her iki yol** olarak seçilebilir; kurum türüne göre eleme yapılmaz.
 
 Mezuniyet ifadeleri ve bağlam içindeki nitelik kodları değerlendirilir. Genel lisans 4001 ve Bilgisayar Mühendisliğini kapsayan 4531 kodları için [ÖSYM 2026/1 nitelik tablosu](https://dokuman.osym.gov.tr/pdfdokuman/2026/KPSS/TERCIH1/lisans-nitelik_t1d03072026.pdf) referans alınmıştır. Kodun geçtiği belge veya listedeki başka bir kadro, bütün pozisyonların aynı koşula sahip olduğu anlamına gelmez.
 

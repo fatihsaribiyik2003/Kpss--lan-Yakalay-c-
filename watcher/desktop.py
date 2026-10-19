@@ -20,9 +20,7 @@ import webbrowser
 from .core import Store, Engine, today
 from .calendar_widget import ScanCalendar
 from .access import OwnerVault
-from .candidate import CATEGORY_LABELS, ROUTE_LABELS
-
-PROFILE_VIEWS=('Önerilen + kontrol gereken','Ön eşleşmeler','Kontrol gerekenler','Dil koşulu olanlar','Profil dışı / diğer','Tüm kayıtlı ilanlar')
+from .candidate import CATEGORY_LABELS, ROUTE_LABELS, listing_matches
 
 
 def autostart(enabled):
@@ -116,15 +114,17 @@ class Desktop:
         style.configure('Title.TLabel',font=('Segoe UI',24,'bold'))
         style.configure('Muted.TLabel',foreground='#57677e')
         style.configure('TButton',padding=(12,8))
+        style.configure('Filter.TRadiobutton',padding=(12,9),background='#e8edf5',foreground='#18243c',indicatoron=False)
+        style.map('Filter.TRadiobutton',background=[('selected','#225acb')],foreground=[('selected','white')])
         style.configure('Treeview',rowheight=34,font=('Segoe UI',10),background='white',fieldbackground='white')
         style.configure('Treeview.Heading',font=('Segoe UI',10,'bold'),padding=8)
-        outer = ttk.Frame(self.root,padding=22)
+        outer = ttk.Frame(self.root,padding=16)
         outer.pack(fill='both',expand=True)
         ttk.Label(outer,text='KPSS İlan Yakalayıcı',style='Title.TLabel').pack(anchor='w')
-        ttk.Label(outer,text='Resmî Gazete • otomatik PDF ve OCR taraması • veriler bu bilgisayarda',style='Muted.TLabel').pack(anchor='w',pady=(4,14))
-        ttk.Label(outer,textvariable=self.summary,font=('Segoe UI',11,'bold')).pack(anchor='w',pady=(0,12))
+        ttk.Label(outer,text='Resmî Gazete • otomatik PDF ve OCR taraması • veriler bu bilgisayarda',style='Muted.TLabel').pack(anchor='w',pady=(4,8))
+        ttk.Label(outer,textvariable=self.summary,font=('Segoe UI',11,'bold')).pack(anchor='w',pady=(0,8))
         controls=ttk.Frame(outer)
-        controls.pack(fill='x',pady=(0,12))
+        controls.pack(fill='x',pady=(0,8))
         ttk.Button(controls,text='Şimdi kontrol et',command=self.check_now).pack(side='left')
         self.pause_button=ttk.Button(controls,text='Devam et' if self.store.setting('paused') else 'Duraklat',command=self.pause)
         self.pause_button.pack(side='left',padx=8)
@@ -144,28 +144,42 @@ class Desktop:
         settings=ttk.Frame(tabs,padding=18)
         profile_tab=ttk.Frame(tabs,padding=18)
         logs=ttk.Frame(tabs,padding=10)
-        tabs.add(results,text='  Eşleşen ilanlar  ')
+        tabs.add(results,text='  İlanlar / PDF’ler  ')
         tabs.add(errors,text='  İşlem durumu  ')
-        tabs.add(profile_tab,text='  Profil / Filtre  ')
+        tabs.add(profile_tab,text='  Aday profilim  ')
         tabs.add(scan_range,text='  Tarama aralığı  ')
         tabs.add(settings,text='  Ayarlar  ')
         tabs.add(logs,text='  Günlük  ')
         filters=ttk.Frame(results)
         filters.pack(fill='x',pady=(0,8))
-        self.profile_view=tk.StringVar(value=self.store.setting('profile_view'))
-        self.profile_route=tk.StringVar(value=self.store.setting('profile_route'))
-        view=ttk.Combobox(filters,textvariable=self.profile_view,values=PROFILE_VIEWS,state='readonly',width=29)
-        view.pack(side='left')
-        view.bind('<<ComboboxSelected>>',self.filter_changed)
-        route=ttk.Combobox(filters,textvariable=self.profile_route,values=('Her iki yol','Mühendis / bilişim','Genel memur / idari'),state='readonly',width=22)
-        route.pack(side='left',padx=8)
-        route.bind('<<ComboboxSelected>>',self.filter_changed)
+        self.list_mode=tk.StringVar(value='all')
+        self.profile_route=tk.StringVar(value='Her iki yol')
+        self.list_query=tk.StringVar()
+        self.mode_buttons={}
+        for value,label in (('all','Tüm ilanlar'),('kpss','KPSS • profilime göre'),('academic','Akademisyen alımları')):
+            button=ttk.Radiobutton(filters,text=label,value=value,variable=self.list_mode,style='Filter.TRadiobutton',command=self.filter_changed)
+            button.pack(side='left',padx=(0,5))
+            self.mode_buttons[value]=button
+        searchbar=ttk.Frame(results)
+        searchbar.pack(fill='x',pady=(0,8))
+        ttk.Label(searchbar,text='İlan ara:').pack(side='left',padx=(0,6))
+        ttk.Entry(searchbar,textvariable=self.list_query,width=20).pack(side='left',fill='x',expand=True)
+        self.list_query.trace_add('write',lambda *_: self.refresh())
+        self.route_input=ttk.Combobox(searchbar,textvariable=self.profile_route,values=('Her iki yol','Mühendis / bilişim','Genel memur / idari'),state='disabled',width=21)
+        self.route_input.pack(side='left',padx=8)
+        self.route_input.bind('<<ComboboxSelected>>',self.filter_changed)
+        ttk.Button(searchbar,text='Filtreleri temizle',command=self.clear_filters).pack(side='left')
         ttk.Label(results,textvariable=self.filter_summary,style='Muted.TLabel',wraplength=760).pack(anchor='w',pady=(0,6))
-        self.tree=self.table(results,('date','title','route','assessment','pages'),('Tarih','Kurum / ilan','Başvuru yolu','Profil ön filtresi','Sayfa'),(85,290,165,155,60))
+        self.tree=self.table(results,('date','title','route','assessment','pages'),('Tarih','Kurum / ilan','İlan alanı','Değerlendirme / durum','Sayfa'),(85,290,165,155,60))
         self.tree.bind('<<TreeviewSelect>>',self.details)
         self.tree.bind('<Double-1>',lambda event:self.open_pdf())
-        self.detail=tk.Text(results,height=4,wrap='word',font=('Segoe UI',10),relief='flat',padx=10,pady=8)
-        self.detail.pack(fill='x',pady=10)
+        detail_frame=ttk.Frame(results)
+        detail_frame.pack(fill='x',pady=6)
+        self.detail=tk.Text(detail_frame,height=3,wrap='word',font=('Segoe UI',10),relief='flat',padx=10,pady=8)
+        detail_scroll=ttk.Scrollbar(detail_frame,orient='vertical',command=self.detail.yview)
+        self.detail.configure(yscrollcommand=detail_scroll.set)
+        detail_scroll.pack(side='right',fill='y')
+        self.detail.pack(side='left',fill='x',expand=True)
         self.detail.insert('1.0','İlgili metni görmek için bir ilan seçin. PDF’yi açmak için çift tıklayın.')
         self.detail.configure(state='disabled')
         actions=ttk.Frame(results)
@@ -204,7 +218,7 @@ class Desktop:
         self.startup=tk.BooleanVar(value=self.store.setting('autostart'))
         ttk.Checkbutton(settings,text='Windows oturumu açılınca arka planda başlat',variable=self.startup).grid(row=3,column=0,columnspan=2,sticky='w',pady=10)
         ttk.Button(settings,text='Ayarları kaydet',command=self.save).grid(row=4,column=0,sticky='w',pady=12)
-        info=('Ana sonuç listesi aday profiline göre ön filtrelenir. Kelimeler ek işaret olarak saklanır; genel memur ilanı yalnızca bilişim kelimesi yok diye elenmez.\n\n'
+        info=('İlanlar / PDF’ler sekmesi başlangıçta bütün kayıtlı ilanları gösterir. Listenin üzerindeki çubuktan KPSS veya akademisyen alımlarına geçebilirsin. KPSS görünümü aday profiline göre ön filtrelenir.\n\n'
               'Geçmiş taraması Tarama aralığı sekmesinden 1–7 gün seçilerek sınırlandırılır. Daha eski tarama yönetici yetkisi gerektirir. Tamamlanan PDF’ler yeniden okunmaz. '
               'Kelimeler değişirse mevcut metinler tekrar filtrelenir; PDF indirme ve OCR tekrarlanmaz.\n\n'
               'Pencereyi kapatmak uygulamayı sistem tepsisine indirir. Bilgisayar kapalıyken tarama yapılamaz; açıldığında kaçırılan günler tamamlanır. '
@@ -279,24 +293,15 @@ class Desktop:
         except (ValueError,TypeError) as exc:
             messagebox.showerror('Profil kaydedilemedi',str(exc),parent=self.root)
 
-    def visible_profile(self,review):
-        view=self.profile_view.get()
-        categories={'Önerilen + kontrol gereken':{'pre_match','review'},'Ön eşleşmeler':{'pre_match'},
-                    'Kontrol gerekenler':{'review'},'Dil koşulu olanlar':{'language'},
-                    'Profil dışı / diğer':{'outside','other'}}
-        if view in categories and review['category'] not in categories[view]:
-            return False
-        route=self.profile_route.get()
-        if route=='Mühendis / bilişim' and review['route'] not in ('technical','mixed','unknown'):
-            return False
-        if route=='Genel memur / idari' and review['route'] not in ('general','mixed','unknown'):
-            return False
-        return True
-
     def filter_changed(self,event=None):
-        self.store.set_setting('profile_view',self.profile_view.get())
-        self.store.set_setting('profile_route',self.profile_route.get())
+        self.route_input.configure(state='readonly' if self.list_mode.get()=='kpss' else 'disabled')
         self.refresh()
+
+    def clear_filters(self):
+        self.list_mode.set('all')
+        self.profile_route.set('Her iki yol')
+        self.list_query.set('')
+        self.filter_changed()
 
     def table(self,parent,columns,headings,widths):
         frame=ttk.Frame(parent)
@@ -322,8 +327,11 @@ class Desktop:
         self.calendar.update_days(scanned)
         self.update_range_summary()
         lower,upper=self.store.scan_start().isoformat(),today().isoformat()
-        all_rows=self.store.profile_results()
-        rows=[r for r in all_rows if self.visible_profile(r['assessment'])]
+        all_rows=self.store.listing_results()
+        rows=[r for r in all_rows if listing_matches(r,self.list_mode.get(),self.profile_route.get(),self.list_query.get())]
+        for mode,label in (('all','Tüm ilanlar'),('kpss','KPSS • profilime göre'),('academic','Akademisyen alımları')):
+            count=sum(listing_matches(r,mode) for r in all_rows)
+            self.mode_buttons[mode].configure(text=f'{label} ({count})')
         self.current_rows={str(r['id']):dict(r) for r in rows}
         snapshot=json.dumps(rows,sort_keys=True,ensure_ascii=True)
         if snapshot!=self.result_snapshot:
@@ -332,9 +340,16 @@ class Desktop:
             self.tree.delete(*self.tree.get_children())
             for row in rows:
                 review=row['assessment']
-                self.tree.insert('','end',iid=str(row['id']),values=(row['day'],row['title'],ROUTE_LABELS[review['route']],CATEGORY_LABELS[review['category']],row['hit_pages']))
+                state={'pending':'Okuma bekliyor','processing':'Okunuyor…','error':'Yeniden denenecek','done':'Değerlendiriliyor…','partial':'OCR kontrolü'}.get(row['status'],'Bekliyor')
+                area='Akademik alım' if review and review.get('academic_hiring') else (ROUTE_LABELS[review['route']] if review else 'Henüz belirlenmedi')
+                self.tree.insert('','end',iid=str(row['id']),values=(row['day'],row['title'],area,CATEGORY_LABELS[review['category']] if review else state,row['hit_pages']))
             if selected and selected[0] in self.current_rows:
                 self.tree.selection_set(selected[0])
+            elif not self.tree.selection():
+                self.detail.configure(state='normal')
+                self.detail.delete('1.0','end')
+                self.detail.insert('1.0','Bir ilan seçerek açıklamayı okuyabilir, çift tıklayarak PDF’yi açabilirsin.' if rows else 'Bu filtreye uyan ilan yok. Tüm kayıtları görmek için “Filtreleri temizle” düğmesini kullan.')
+                self.detail.configure(state='disabled')
         failures=self.store.failures()
         with self.store.connect() as db:
             counts={r[0]:r[1] for r in db.execute('SELECT status,COUNT(*) FROM documents GROUP BY status')}
@@ -350,9 +365,11 @@ class Desktop:
                 self.errors.insert('','end',iid='doc'+str(row['id']),values=(row['day'],row['title'],state,row['error']))
             for row in days:
                 self.errors.insert('','end',values=(row['day'],'İlan dizini','Yeniden denenecek' if lower<=row['day']<=upper else 'Aralık dışında',row['error']))
-        language_count=sum(r['category']=='language' for r in all_rows)
-        self.filter_summary.set(f'{len(rows)} gösteriliyor • {language_count} dil koşulu olan kayıt ayrı görünümde • otomatik ön filtre, kesin uygunluk kararı değildir')
-        self.summary.set(f"{len(rows)} filtrelenen PDF     •     {counts.get('done',0)+counts.get('partial',0)} okunan PDF     •     {pending} aralıkta bekleyen     •     {len(scanned)} gün tamamlandı")
+        hints={'all':'Filtresiz görünüm: keşfedilen tüm ilanlar; okunmayı bekleyenler dahil.',
+               'kpss':'KPSS ve mezuniyetine göre ön eşleşmeler. Puan/yıl ve özel şartlar belirsizse kontrol notunu oku; kesin atama garantisi değildir.',
+               'academic':'Üniversitelerin akademik kadro alımları. Kişisel lisans/KPSS uygunluğu bu görünümü sınırlamaz.'}
+        self.filter_summary.set(f"{len(rows)} / {len(all_rows)} ilan • {hints[self.list_mode.get()]}")
+        self.summary.set(f"{len(all_rows)} kayıtlı PDF     •     {counts.get('done',0)+counts.get('partial',0)} okunan PDF     •     {pending} aralıkta bekleyen     •     {len(scanned)} gün tamamlandı")
         log=self.store.directory/'uygulama.log'
         if log.exists():
             with log.open('rb') as stream:
@@ -398,6 +415,8 @@ class Desktop:
             text+='\n'.join('• '+reason for reason in review['reasons'])
             text+='\n\nDayanaklar:\n'+'\n\n'.join(f"Sayfa {e['page']} • {e['kind']}\n{e['text']}" for e in review['evidence'])
             text+='\n\n'+review['note']+'\n\nEk kelime işaretleri:\n'
+        elif item:
+            text=f"{item['title']} • {item['day']}\nBu PDF henüz değerlendirilmedi. İlan tüm kayıtlar görünümünde korunur. Resmî kaynaktan açabilir veya otomatik okumanın tamamlanmasını bekleyebilirsin.\n{item['error'] or ''}"
         text+='\n\n'.join(f"Sayfa {r['page']} • {r['term']}\n…{r['excerpt']}…" for r in rows)
         self.detail.configure(state='normal')
         self.detail.delete('1.0','end')
@@ -412,6 +431,8 @@ class Desktop:
         row=self.selected()
         if row and row['path'] and Path(row['path']).exists():
             os.startfile(row['path'])
+        elif row:
+            webbrowser.open(row['url'])
 
     def open_source(self):
         row=self.selected()
@@ -532,7 +553,7 @@ class Desktop:
             messagebox.showerror('Yönetici girişi',str(exc),parent=self.root)
 
     def export(self):
-        path=filedialog.asksaveasfilename(parent=self.root,defaultextension='.csv',initialfile='eslesen-ilanlar.csv',filetypes=[('CSV','*.csv')])
+        path=filedialog.asksaveasfilename(parent=self.root,defaultextension='.csv',initialfile='ilanlar.csv',filetypes=[('CSV','*.csv')])
         if not path:
             return
         with open(path,'w',encoding='utf-8-sig',newline='') as stream:
@@ -540,7 +561,7 @@ class Desktop:
             writer.writerow(['Tarih','Kurum','Başvuru yolu','Profil ön filtresi','Kontrol notları','Sayfalar','PDF bağlantısı'])
             for row in self.current_rows.values():
                 review=row['assessment']
-                values=[row['day'],row['title'],ROUTE_LABELS[review['route']],CATEGORY_LABELS[review['category']],' | '.join(review['reasons']),row['hit_pages'],row['url']]
+                values=[row['day'],row['title'],ROUTE_LABELS[review['route']] if review else '',CATEGORY_LABELS[review['category']] if review else row['status'],' | '.join(review['reasons']) if review else 'Henüz değerlendirilmedi',row['hit_pages'],row['url']]
                 writer.writerow(["'"+str(v) if str(v).startswith(('=','+','-','@')) else v for v in values])
         self.status.set('CSV dosyası kaydedildi')
 

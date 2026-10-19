@@ -6,7 +6,7 @@ import json
 import re
 import unicodedata
 
-ANALYSIS_VERSION = 3
+ANALYSIS_VERSION = 5
 CATEGORY_LABELS = {'pre_match':'Ön eşleşme', 'review':'Kontrol gerekli',
                    'language':'Dil koşulu var', 'outside':'Profil dışında', 'other':'Alım ilanı değil'}
 ROUTE_LABELS = {'technical':'Mühendis / bilişim', 'general':'Genel memur / idari',
@@ -126,7 +126,11 @@ def analyze(pages, profile):
                 record(number,'Ek belge',re.sub(r'\s+',' ',clause))
     text=' '.join(normalized)
     head=text[:3000]
-    academic=bool(re.search(r'ogretim\s+(?:uyesi|elemani)\s+(?:alim|alinacak)|akademik\s+personel\s+alim',head))
+    academic=bool(re.search(r'ogretim\s+(?:uyesi|elemani)\s+(?:alim|alinacak)|akademik\s+personel\s+alim|(?:ogretim\s+(?:uyesi|elemani|gorevlisi)|arastirma\s+gorevlisi)[^.;]{0,120}(?:alinacaktir|alim\s+ilani|alinacak)|(?:profesor|docent|doktor ogretim uyesi)\s+alim',head))
+    # Tablolu PDF'nin bozuk sıralanmış yerel metni başlığı geriye itebilir.
+    # OCR kopyası ve ek sayfalardaki açık alım/düzeltme ifadeleri de taranır.
+    compact_text=re.sub(r'\s+','',text)
+    academic |= bool(re.search(r'(?:ogretim(?:uyesi|uyeleri|elemani|elemanlari|gorevlisi|gorevlileri)|arastirmagorevlisi|akademikpersonel)[^.;]{0,140}(?:alim|alinac|atanacak|basvuru|duzeltme|iptal)',compact_text))
     hiring=bool(re.search(r'personel\w*\s+(?:alim|alinacak)|memur\w*\s+(?:alim|alinacak)|is[cç]i\w*\s+alim|bilisim personeli giris sinavi|ogretim\s+(?:uyesi|elemani)[^.;]{0,45}alinacaktir|kadro[^.;]{0,65}personel[^.;]{0,45}alinacaktir',head))
     hiring |= bool(re.search(r'(?:muhendis|programci|uzman(?: yardimcisi)?|buro personeli|bilgisayar isletmeni)\w*\s+(?:alim|alinacak)',head))
     hiring |= academic or ('kpss' in text and 'mezun' in text and (technical or general))
@@ -199,10 +203,36 @@ def analyze(pages, profile):
         if low_quality:
             reasons.append('En az bir sayfada OCR kontrolü gerekiyor; otomatik değerlendirme eksik olabilir.')
             if category!='language': category='review'
+    # KPSS görünümü yalnızca olumlu mezuniyet dayanağı ve KPSS içeren alımları kapsar.
+    # Bilinen uyumsuzluklar elenir; bilinmeyen puan/yıl/belge için notlar korunur.
+    kpss_match=bool(hiring and 'kpss' in text and profile.get('has_kpss')
+                    and (computer or broad) and category in ('pre_match','review')
+                    and not (academic and not (general or broad)))
+    if kpss_scores and profile.get('kpss_score') is not None and profile['kpss_score']<min(kpss_scores):
+        kpss_match=False
+    if kpss_types and profile.get('kpss_type') and profile['kpss_type'] not in kpss_types:
+        kpss_match=False
     return {'category':category,'route':route,'reasons':reasons,'evidence':evidence,
+            'academic_hiring':academic,'kpss_match':kpss_match,
             'pages':sorted({e['page'] for e in evidence}),
             'language_required':bool(language_required),'language_optional':bool(language_optional),
             'language_document_required':language_document_required,
             'kpss_types':sorted(kpss_types),'kpss_minimums':sorted(set(kpss_scores)),
             'computer_degree':computer,'general_bachelor':broad,
             'note':'Otomatik ön filtre; kesin başvuru uygunluğu kararı değildir.'}
+
+
+def listing_matches(item, mode='all', route='Her iki yol', query=''):
+    """Liste görünümü; filtresiz modda okunmamış kayıtlar da görünür."""
+    review=item.get('assessment') or {}
+    if mode=='kpss':
+        if not review.get('kpss_match'):
+            return False
+        if route=='Mühendis / bilişim' and review.get('route') not in ('technical','mixed'):
+            return False
+        if route=='Genel memur / idari' and review.get('route') not in ('general','mixed'):
+            return False
+    elif mode=='academic' and not review.get('academic_hiring'):
+        return False
+    needle=norm(query.strip())
+    return not needle or needle in norm(' '.join(str(item.get(key) or '') for key in ('title','day','terms')))

@@ -6,15 +6,15 @@ Windows 10/11 için otomatik Resmî Gazete ilan takibi. Hazır EXE, PDF okuma mo
 
 Masaüstündeki **KPSS İlan Yakalayıcı** kısayolunu veya bu klasördeki **BASLAT.bat** dosyasını çift tıklayın. Kurulu uygulama `%LOCALAPPDATA%\Programs\KPSSIlanYakalayici` klasöründedir. Hazır taşınabilir paket `dist/KPSS-Ilan-Yakalayici` klasöründedir; taşırken EXE ile birlikte `_internal` klasörü de taşınmalıdır.
 
-İlk açılışta bugün dahil son **7 gün** taranır. **Tarama aralığı** sekmesinden **1–7 gün** seçip **Seçilen aralığı kaydet ve tara** düğmesine basabilirsiniz. Ana liste aday profiline göre filtrelenir; kelime işaretleri yalnızca ek bilgi olarak saklanır. Aralık her gün bugüne göre hesaplanır; uygulama açık kaldıkça daha eskiye doğru büyümez. Eski sürümden güncellemede de 7 gün sınırı otomatik uygulanır.
+İlk açılışta bugün dahil son **7 gün** taranır. **Tarama aralığı** sekmesinden **1–7 gün** seçip **Seçilen aralığı kaydet ve tara** düğmesine basabilirsiniz. Ana liste başlangıçta bütün keşfedilen ilanları gösterir; filtre çubuğundan KPSS veya akademisyen alımları seçilebilir. Aralık her gün bugüne göre hesaplanır; uygulama açık kaldıkça daha eskiye doğru büyümez. Eski sürümden güncellemede de 7 gün sınırı otomatik uygulanır.
 
 ## Sana göre ilanlar
 
 Başlangıç profili: **Bilgisayar Mühendisliği lisans mezunu, KPSS puanı var, İngilizce bilgisi ve dil belgesi yok**. Kurum türüne göre eleme yapılmaz. Mühendislik/bilişim kadroları ile herhangi bir lisans mezununu kabul eden genel memur/idari kadrolar birlikte değerlendirilir.
 
-**Profil / Filtre** sekmesinde KPSS puanı, puan türü, sınav yılı ve deneyim süresini istersen doldurabilirsin. Boş alanlar bilinmiyor sayılır; koşulların karşılandığı varsayılmaz. Başlangıçta üç ay sonrası dil öğrenme hedefidir. Hedef tarih geldiğinde profil otomatik değişmez. İngilizce öğrendiğinde **İngilizce bilgim var**, ayrıca geçerli bir sınav sonucu/belge edindiğinde **Dil belgem / sınav sonucum var** kutusunu işaretle. Bunlar ayrı koşullardır.
+**Aday profilim** sekmesinde KPSS puanı, puan türü, sınav yılı ve deneyim süresini istersen doldurabilirsin. Boş alanlar bilinmiyor sayılır; koşulların karşılandığı varsayılmaz. Başlangıçta üç ay sonrası dil öğrenme hedefidir. Hedef tarih geldiğinde profil otomatik değişmez. İngilizce öğrendiğinde **İngilizce bilgim var**, ayrıca geçerli bir sınav sonucu/belge edindiğinde **Dil belgem / sınav sonucum var** kutusunu işaretle. Bunlar ayrı koşullardır.
 
-Sonuçların üstündeki listelerden **Önerilen + kontrol gereken**, **Ön eşleşmeler**, **Kontrol gerekenler**, **Dil koşulu olanlar**, **Profil dışı / diğer** veya **Tüm kayıtlı ilanlar** görünümünü seçebilirsin. İkinci listede mühendis/bilişim ve genel memur/idari yollarını ayrı ayrı ya da birlikte görebilirsin.
+PDF listesinin üzerindeki çubuktan **Tüm ilanlar**, **KPSS • profilime göre** ve **Akademisyen alımları** seçilir. Her açılışta Tüm ilanlar seçilidir; okunmamış ve profile uymayan kayıtlar da görünür. KPSS görünümü, KPSS ve mezuniyet dayanağı bulunan ilanları seçer; bilinen puan/tür uyumsuzlukları elenir, bilinmeyen şartlar kontrol notuyla korunabilir. Meslek yolu listesi yalnızca KPSS görünümünde çalışır. Akademisyen alımları kişisel lisans/dil profiline göre elenmez; üniversitenin idari alımı ayrı değerlendirilir. Düğmelerde ilan sayıları görünür. İlan ara alanı başlık/tarih/ek kelimelerde arar. **Filtreleri temizle** bütün kayıtları geri getirir. Bu filtreler tarama aralığını değiştirmez.
 
 Bir ilanı seçtiğinde neden listelendiği, kontrol edilmesi gereken şartlar ve dayanak sayfalar görünür. Dil puanı olmayana sıfır verilmesi gibi ifadeler otomatik ret sayılmaz. Aynı PDF'deki farklı kadroların koşulları karışabiliyorsa bütün PDF elenmez; kontrol gerektiği belirtilir. Akademik kadrolar yalnızca lisans profiliyle uygun kabul edilmez. **Ön eşleşme kesin başvuru uygunluğu değildir**; ilgili kadro satırını, başvuru tarihlerini, puan türünü/yılını ve özel şartları doğrula.
 
@@ -49,11 +49,11 @@ Windows oturumu açıldığında otomatik başlatma varsayılan olarak açıktı
 
 ## Sonuçları okuma
 
-- **Eşleşen ilanlar:** tarih, kurum, meslek yolu, profil ön filtresi ve sayfa numaraları; seçince gerekçe ve dayanak metin görünür. PDF’yi açmak için çift tıklayın.
+- **İlanlar / PDF’ler:** tarih, kurum, meslek yolu, profil ön filtresi ve sayfa numaraları; seçince gerekçe ve dayanak metin görünür. PDF’yi açmak için çift tıklayın.
 - **İşlem durumu:** indirme/okuma hataları, OCR kesinliği düşük dosyalar ve erişilemeyen dizinler. Okunamayan dosya “eşleşme yok” olarak değerlendirilmez.
 - **Günlük:** yapılan son işlemler. Uzun tarama sırasında o anki PDF ve sayfa altta görünür.
 - **Tarama takvimi:** sağ alt köşedeki takvimde, PDF taraması biten günlerin altında küçük mavi nokta görünür. Bekleyen veya hata durumundaki PDF’leri olan günler henüz işaretlenmez. Okunmuş ancak OCR kontrolü gereken PDF’ler ayrıca İşlem durumu sekmesinde gösterilir. Oklarla ay değiştirebilir, **Bu ay** düğmesiyle güncel aya dönebilirsiniz.
-- **CSV dışa aktar:** eşleşen ilanları Excel ile açılabilir biçimde kaydeder.
+- **CSV dışa aktar:** ekranda görünen ilanları Excel ile açılabilir biçimde kaydeder.
 
 Kelime eşleşmesi, başvuru şartlarını karşıladığınız anlamına gelmez. Türkçe harflerin aksansız OCR karşılıkları ve kelime ekleri aranır. Görüntü kalitesi düşük belgelerde OCR hataları olabilir; kaynağın başvuru şartlarını kontrol edin. Aynı URL’deki dosyanın sonradan değiştirilmesi otomatik tespit edilmez; mevcut tasarım tamamlanmış PDF’leri yeniden indirmez.
 

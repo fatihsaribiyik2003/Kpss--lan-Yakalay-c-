@@ -198,6 +198,18 @@ class Store:
                                 AND status NOT IN ('done','partial'))
             ''')}
 
+    def listing_results(self):
+        """Tüm keşfedilen PDF'ler; ön filtre okumayı bekleyenleri gizlemez."""
+        with self.connect() as db:
+            rows=[dict(r) for r in db.execute('SELECT * FROM documents ORDER BY day DESC,id DESC')]
+        reviews={r['id']:r for r in self.profile_results()}
+        for row in rows:
+            result=reviews.get(row['id'])
+            row.update(assessment=result['assessment'] if result else None,
+                       terms=result['terms'] if result else '',
+                       hit_pages=result['hit_pages'] if result else '')
+        return rows
+
 
 class Reader:
     def __init__(self):
