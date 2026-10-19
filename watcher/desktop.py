@@ -388,7 +388,7 @@ class Desktop:
             return
         try:
             if self.vault.needs_password():
-                password=simpledialog.askstring('İlk yönetici kurulumu','Size özel yönetici anahtarı bulundu. En az 12 karakterlik bir parola belirleyin:',show='*',parent=self.root)
+                password=simpledialog.askstring('İlk yönetici kurulumu','Size özel yönetici anahtarı bulundu. En az 8 karakterlik bir parola belirleyin:',show='*',parent=self.root)
                 if password is None:
                     return
                 confirm=simpledialog.askstring('Yönetici parolası','Parolayı tekrar yazın:',show='*',parent=self.root)

@@ -10,7 +10,7 @@ Masaüstündeki **KPSS İlan Yakalayıcı** kısayolunu veya bu klasördeki **BA
 
 ## Proje yöneticisi kilidi
 
-7 günden eski tarama yalnızca proje sahibinin özel anahtarıyla yetkilendirilir. Sizin Windows hesabınıza bu anahtarın ilk kurulum kaydı hazırlanmıştır. **Tarama aralığı → Yönetici girişi** düğmesine ilk basışta en az 12 karakterlik parolanızı belirleyin. Sonraki girişlerde aynı parola istenir. Yönetici modunda daha büyük bir gün sayısı girip kaydedebilirsiniz; tarih sınırı 2000 yılının başıdır.
+7 günden eski tarama yalnızca proje sahibinin özel anahtarıyla yetkilendirilir. Sizin Windows hesabınıza bu anahtarın ilk kurulum kaydı hazırlanmıştır. Parola henüz belirlenmemişse **Tarama aralığı → Yönetici girişi** düğmesine ilk basışta en az 8 karakterlik parolanızı belirleyin. Parola önceden tanımlanmışsa doğrudan parolanızla giriş yapın. Parolanın kendisi kaydedilmez; rastgele tuzlu PBKDF2-SHA256 özeti (600.000 tur) yerel kayıtta tutulur. Özel anahtar ayrıca parola ile şifrelenir. Yönetici modunda daha büyük bir gün sayısı girip kaydedebilirsiniz; tarih sınırı 2000 yılının başıdır.
 
 Yetkilendirilen geniş aralık, yeniden başlatma sonrasında otomatik takip için korunur. Geniş aralığı değiştirmek için yeniden yönetici girişi gerekir. **Yönetici modunu kapat ve kilitle** düğmesi geniş yetkiyi kaldırıp aralığı en fazla 7 güne düşürür. Normal kullanıcı daha geniş yetkiyi kendisi oluşturamaz; uygulamada ortak bir varsayılan yönetici parolası yoktur.
 

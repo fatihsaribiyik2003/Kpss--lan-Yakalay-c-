@@ -20,7 +20,7 @@ Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki ek
 
 **Tarama aralığı** sekmesinde gün sayısını seçip **Seçilen aralığı kaydet ve tara** düğmesine basın. Normal kullanıcı 1–7 gün seçebilir. Eski sürümdeki sabit başlangıç tarihi yeni sürümde tarama sınırı olarak kullanılmaz; güncelleme otomatik olarak 7 günlük aralıkla başlar.
 
-**Yönetici girişi**, yalnızca proje sahibinin özel anahtarının bulunduğu Windows hesabında kullanılabilir. İlk girişte en az 12 karakterlik bir parola belirlenir. Özel anahtar bundan sonra bu parolayla şifrelenmiş olarak saklanır; parola veya özel anahtar uygulama paketine ve GitHub'a dahil edilmez. Diğer kurulumlar yeni yönetici oluşturamaz.
+**Yönetici girişi**, yalnızca proje sahibinin özel anahtarının bulunduğu Windows hesabında kullanılabilir. İlk girişte en az 8 karakterlik bir parola belirlenir. Parolanın kendisi kaydedilmez; rastgele tuzlu PBKDF2-SHA256 özeti (600.000 tur) yerel yönetici kaydında tutulur. Özel anahtar ayrıca bu parolayla şifrelenmiş PKCS8 biçiminde saklanır; parola, parola özeti ve özel anahtar uygulama paketine ve GitHub'a dahil edilmez. Diğer kurulumlar yeni yönetici oluşturamaz.
 
 Yönetici daha geniş bir gün sayısı seçip kaydedebilir. İmzalanan aralık uygulama yeniden açıldığında otomatik takip için geçerli kalır; geniş aralığı değiştirmek için tekrar yönetici girişi gerekir. **Yönetici modunu kapat ve kilitle** düğmesi geniş yetkiyi kaldırıp 1–7 gün sınırını yeniden etkinleştirir.
 

@@ -156,9 +156,39 @@ class AccessTests(unittest.TestCase):
             vault.create_password('test-password-only-123')
         self.assertFalse(vault.bootstrap.exists())
         self.assertIn(b'ENCRYPTED PRIVATE KEY',vault.pem.read_bytes())
+        metadata=json.loads((directory/'owner.json').read_text('utf-8'))
+        self.assertEqual(metadata['password_hash']['algorithm'],'pbkdf2-sha256')
+        self.assertNotIn('test-password-only-123',(directory/'owner.json').read_text('utf-8'))
         with self.assertRaises(ValueError):
             vault.unlock('incorrect-password')
         self.assertEqual(vault.unlock('test-password-only-123').public_key().public_bytes_raw().hex(),self.public)
+
+    def test_password_hash_uses_unique_salt_and_rejects_wrong_password(self):
+        first=access.password_record('demo1234')
+        second=access.password_record('demo1234')
+        self.assertNotEqual(first['salt'],second['salt'])
+        self.assertNotEqual(first['digest'],second['digest'])
+        self.assertTrue(access.verify_password('demo1234',first))
+        self.assertFalse(access.verify_password('incorrect',first))
+        self.assertFalse(access.verify_password('demo1234',{'algorithm':'plain'}))
+
+    def test_legacy_vault_migrates_and_forged_hash_cannot_unlock_key(self):
+        directory=Path(self.temp.name)/'legacy-owner'
+        directory.mkdir()
+        metadata_path=directory/'owner.json'
+        metadata_path.write_text(json.dumps({'public_key':self.public}),'utf-8')
+        encrypted=self.key.private_bytes(access.serialization.Encoding.PEM,
+                  access.serialization.PrivateFormat.PKCS8,
+                  access.serialization.BestAvailableEncryption(b'legacy-test-password'))
+        (directory/'owner-private.pem').write_bytes(encrypted)
+        vault=access.OwnerVault(directory)
+        vault.unlock('legacy-test-password')
+        metadata=json.loads(metadata_path.read_text('utf-8'))
+        self.assertTrue(access.verify_password('legacy-test-password',metadata['password_hash']))
+        metadata['password_hash']=access.password_record('different-test-password')
+        metadata_path.write_text(json.dumps(metadata),'utf-8')
+        with self.assertRaises(ValueError):
+            vault.unlock('different-test-password')
 
 
 if __name__=='__main__':
