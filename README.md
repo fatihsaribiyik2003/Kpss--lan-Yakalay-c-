@@ -4,7 +4,8 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 
 ## Özellikler
 
-- İlk çalıştırmada son 30 günü, sonraki kontrollerde yeni ve eksik günleri tarar. Başlangıç tarihi değiştirilebilir.
+- Normal kullanıcı, bugün dahil son **1–7 günü** seçebilir. Varsayılan 7 gündür; aralık her gün bugüne göre hesaplanır ve zamanla geriye doğru büyümez.
+- Proje yöneticisi, özel anahtarı ve parolasıyla 7 gün sınırını kaldırabilir. Seçilen geniş aralık bu kuruluma ve cihaza bağlı bir dijital imzayla yetkilendirilir.
 - Varsayılan olarak **KPSS, lisans, bilişim, bilgisayar, yazılım** kelimelerini arar. Kelimelerden birinin geçmesi yeterlidir.
 - PDF metnini okur; görüntü içeren sayfalarda bilgisayar üzerinde OCR çalıştırır. Ücretli API anahtarı gerekmez.
 - İşlenmiş PDF'leri tekrar indirmez. Aynı içerik farklı bir bağlantıyla yayımlanırsa kayıtlı sayfa metinlerini kullanır.
@@ -13,7 +14,19 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 - Sağ alt köşedeki takvimde, PDF taraması biten günler küçük mavi noktalarla işaretlenir.
 - Sistem tepsisinde çalışır, yeni eşleşmelerde bildirim gösterir. Windows oturumu açıldığında otomatik başlayabilir.
 
-Bilgisayar kapalıyken çalışmaz; açılınca seçili tarih aralığındaki eksik günleri tamamlar. Kontrol aralığı varsayılan olarak 30 dakikadır.
+Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki eksik günleri tamamlar. Aralık dışındaki eski bekleyen dosyalar işlenmez; önceden okunmuş ilanlar korunur. Kontrol aralığı varsayılan olarak 30 dakikadır.
+
+## 1.1 revizyonu: kullanıcı sınırı ve proje yöneticisi
+
+**Tarama aralığı** sekmesinde gün sayısını seçip **Seçilen aralığı kaydet ve tara** düğmesine basın. Normal kullanıcı 1–7 gün seçebilir. Eski sürümdeki sabit başlangıç tarihi yeni sürümde tarama sınırı olarak kullanılmaz; güncelleme otomatik olarak 7 günlük aralıkla başlar.
+
+**Yönetici girişi**, yalnızca proje sahibinin özel anahtarının bulunduğu Windows hesabında kullanılabilir. İlk girişte en az 12 karakterlik bir parola belirlenir. Özel anahtar bundan sonra bu parolayla şifrelenmiş olarak saklanır; parola veya özel anahtar uygulama paketine ve GitHub'a dahil edilmez. Diğer kurulumlar yeni yönetici oluşturamaz.
+
+Yönetici daha geniş bir gün sayısı seçip kaydedebilir. İmzalanan aralık uygulama yeniden açıldığında otomatik takip için geçerli kalır; geniş aralığı değiştirmek için tekrar yönetici girişi gerekir. **Yönetici modunu kapat ve kilitle** düğmesi geniş yetkiyi kaldırıp 1–7 gün sınırını yeniden etkinleştirir.
+
+Yönetici anahtar kasası `%LOCALAPPDATA%\KPSSIlanYakalayiciAdmin` klasöründedir. İlk kurulum kaydı Windows DPAPI ile mevcut kullanıcıya bağlıdır; ilk parola belirlendikten sonra silinir. Şifreli `owner-private.pem` ve `owner.json` dosyalarını yalnızca proje sahibi güvenli bir yerde yedeklemelidir. Parola kaybolduğunda uygulamada herkesin kullanabileceği bir sıfırlama veya arka kapı bulunmaz.
+
+Bu, değiştirilmemiş uygulamada yerel yetkilendirmedir; kaynak kodunu değiştiren veya bilgisayarı bütünüyle kontrol eden birinin kendi sürümünü yapmasını engellemez. Açık kaynak bir masaüstü uygulamasında merkezi bir servis olmadan mutlak bir dağıtım/lisans kilidi iddiası yoktur. İmza ve şifreli anahtar işlemleri için [cryptography Ed25519](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/) ve [anahtar serileştirme](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/serialization/) kullanılır.
 
 ## Hazır Windows uygulaması
 
@@ -65,6 +78,9 @@ Ayrıntılar için [kullanım kılavuzunu](KULLANIM.md) okuyun.
 | `watcher/core.py` | İlan keşfi, PDF/OCR, SQLite kayıtları ve otomatik takip |
 | `watcher/desktop.py` | Masaüstü arayüzü, sistem tepsisi ve başlangıç ayarı |
 | `watcher/calendar_widget.py` | Taranan günleri gösteren takvim |
+| `watcher/access.py` | Yönetici anahtar kasası ve imzalı tarama yetkileri |
+| `watcher/admin_public_key.py` | Dağıtılabilen açık doğrulama anahtarı |
+| `tools/provision_admin.py` | Yalnızca proje sahibinin ilk anahtar hazırlığı; uygulama paketine dahil edilmez |
 | `tests/test_engine.py` | Otomatik testler |
 
 Bağımlılıklar kendi lisanslarına tabidir. Özellikle PyMuPDF, AGPL / ticari çift lisanslıdır. Bu projeye ayrıca bir yazılım lisansı eklenmemiştir.

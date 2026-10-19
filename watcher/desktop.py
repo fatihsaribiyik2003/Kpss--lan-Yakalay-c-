@@ -9,12 +9,14 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 import webbrowser
 
 from .core import Store, Engine, today
 from .calendar_widget import ScanCalendar
+from .access import OwnerVault
 
 
 def autostart(enabled):
@@ -52,9 +54,14 @@ class Desktop:
         self.result_snapshot = None
         self.error_snapshot = None
         self.log_snapshot = None
+        self.admin_key = None
+        self.vault = OwnerVault()
+        self.admin_failures = 0
+        self.admin_retry_after = 0
         self.reindex_requested = threading.Event()
         self.status = tk.StringVar(value='Otomatik takip hazırlanıyor…')
         self.summary = tk.StringVar()
+        self.range_summary = tk.StringVar()
         self.build_ui()
         self.make_tray()
         if startup:
@@ -125,10 +132,12 @@ class Desktop:
         tabs.pack(side='left',fill='both',expand=True)
         results=ttk.Frame(tabs,padding=10)
         errors=ttk.Frame(tabs,padding=10)
+        scan_range=ttk.Frame(tabs,padding=18)
         settings=ttk.Frame(tabs,padding=18)
         logs=ttk.Frame(tabs,padding=10)
         tabs.add(results,text='  Eşleşen ilanlar  ')
         tabs.add(errors,text='  İşlem durumu  ')
+        tabs.add(scan_range,text='  Tarama aralığı  ')
         tabs.add(settings,text='  Ayarlar  ')
         tabs.add(logs,text='  Günlük  ')
         self.tree=self.table(results,('date','title','terms','pages','state'),('Tarih','Kurum / ilan','Bulunan kelimeler','Sayfa','Okuma durumu'),(90,340,250,65,110))
@@ -146,9 +155,24 @@ class Desktop:
         self.errors=self.table(errors,('date','title','state','error'),('Tarih','Kurum / adres','Durum','Açıklama'),(90,300,110,440))
         ttk.Button(errors,text='Seçili PDF’yi aç',command=self.open_error).pack(anchor='w',pady=8)
         ttk.Button(errors,text='Başarısız indirmeleri şimdi yeniden dene',command=self.retry).pack(anchor='w')
-        ttk.Label(settings,text='Geçmiş taraması başlangıcı (YYYY-AA-GG)').grid(row=0,column=0,sticky='w',pady=9)
-        self.start=tk.StringVar(value=self.store.setting('start_date'))
-        ttk.Entry(settings,textvariable=self.start,width=22).grid(row=0,column=1,sticky='w',padx=16)
+        ttk.Label(scan_range,text='Geçmiş taraması',font=('Segoe UI',16,'bold')).pack(anchor='w',pady=(0,12))
+        ttk.Label(scan_range,text='Bugün dahil son kaç gün taransın?').pack(anchor='w')
+        self.scan_days=tk.StringVar(value=str(self.store.scan_days()))
+        self.days_input=ttk.Spinbox(scan_range,from_=1,to=7,textvariable=self.scan_days,width=10,state='readonly')
+        self.days_input.pack(anchor='w',pady=10)
+        ttk.Label(scan_range,textvariable=self.range_summary,wraplength=620,style='Muted.TLabel').pack(anchor='w',pady=(0,12))
+        ttk.Button(scan_range,text='Seçilen aralığı kaydet ve tara',command=self.scan_selected).pack(anchor='w')
+        self.admin_button=ttk.Button(scan_range,text='Yönetici girişi',command=self.toggle_admin)
+        self.admin_button.pack(anchor='w',pady=(20,8))
+        self.admin_state=tk.StringVar(value='Normal kullanıcı: 1–7 gün. Daha eski tarama yalnızca proje yöneticisi tarafından yetkilendirilebilir.')
+        ttk.Label(scan_range,textvariable=self.admin_state,wraplength=620,style='Muted.TLabel').pack(anchor='w')
+        ttk.Label(scan_range,text='Aralık her gün bugüne göre hesaplanır; uygulama açık kaldıkça geriye doğru büyümez.\n\n'
+                  'Aralık dışındaki bekleyen işler işlenmez. Önceden okunmuş ilanlar ve takvim kayıtları korunur. '
+                  'Aralık değiştiğinde mevcut PDF sayfası tamamlandıktan sonra yeni sınır uygulanır.',
+                  wraplength=620).pack(anchor='w',pady=18)
+        self.update_range_summary()
+        ttk.Label(settings,text='Etkin tarama aralığı').grid(row=0,column=0,sticky='w',pady=9)
+        ttk.Label(settings,textvariable=self.range_summary,wraplength=300).grid(row=0,column=1,sticky='w',padx=16)
         ttk.Label(settings,text='Arama kelimeleri (virgülle ayırın)').grid(row=1,column=0,sticky='w',pady=9)
         self.terms=tk.StringVar(value=', '.join(self.store.setting('terms')))
         ttk.Entry(settings,textvariable=self.terms,width=35).grid(row=1,column=1,sticky='w',padx=16)
@@ -159,7 +183,7 @@ class Desktop:
         ttk.Checkbutton(settings,text='Windows oturumu açılınca arka planda başlat',variable=self.startup).grid(row=3,column=0,columnspan=2,sticky='w',pady=10)
         ttk.Button(settings,text='Ayarları kaydet',command=self.save).grid(row=4,column=0,sticky='w',pady=12)
         info=('Kelimelerden en az birinin geçmesi yeterlidir. Türkçe harflerin OCR karşılıkları ve kelime ekleri kapsanır.\n\n'
-              'Başlangıcı daha eski bir tarihe çekerseniz eksik günler otomatik eklenir. Tamamlanan PDF’ler yeniden okunmaz. '
+              'Geçmiş taraması Tarama aralığı sekmesinden 1–7 gün seçilerek sınırlandırılır. Daha eski tarama yönetici yetkisi gerektirir. Tamamlanan PDF’ler yeniden okunmaz. '
               'Kelimeler değişirse mevcut metinler tekrar filtrelenir; PDF indirme ve OCR tekrarlanmaz.\n\n'
               'Pencereyi kapatmak uygulamayı sistem tepsisine indirir. Bilgisayar kapalıyken tarama yapılamaz; açıldığında kaçırılan günler tamamlanır. '
               'Kapsam: günlük Çeşitli İlanlar bölümü. OCR yanlış okuyabilir; sonuçlar kesin başvuru uygunluğu değerlendirmesi değildir.')
@@ -189,7 +213,10 @@ class Desktop:
         return tree
 
     def refresh(self):
-        self.calendar.update_days(self.store.scanned_days())
+        scanned=self.store.scanned_days()
+        self.calendar.update_days(scanned)
+        self.update_range_summary()
+        lower,upper=self.store.scan_start().isoformat(),today().isoformat()
         rows=self.store.results()
         self.current_rows={str(r['id']):dict(r) for r in rows}
         snapshot=[tuple(r) for r in rows]
@@ -205,17 +232,18 @@ class Desktop:
         with self.store.connect() as db:
             counts={r[0]:r[1] for r in db.execute('SELECT status,COUNT(*) FROM documents GROUP BY status')}
             days=db.execute("SELECT * FROM days WHERE status='error' ORDER BY day DESC LIMIT 100").fetchall()
-            done_days=db.execute("SELECT COUNT(*) FROM days WHERE status='done'").fetchone()[0]
+            pending=db.execute("SELECT COUNT(*) FROM documents WHERE status IN ('pending','processing') AND day>=? AND day<=?",(lower,upper)).fetchone()[0]
             missing=db.execute("SELECT COUNT(*) FROM days WHERE status='missing'").fetchone()[0]
-        errors_snapshot=([tuple(r) for r in failures],[tuple(r) for r in days])
+        errors_snapshot=([tuple(r) for r in failures],[tuple(r) for r in days],lower,upper)
         if errors_snapshot!=self.error_snapshot:
             self.error_snapshot=errors_snapshot
             self.errors.delete(*self.errors.get_children())
             for row in failures:
-                self.errors.insert('','end',iid='doc'+str(row['id']),values=(row['day'],row['title'],'OCR kontrolü' if row['status']=='partial' else 'Yeniden denenecek',row['error']))
+                state='OCR kontrolü' if row['status']=='partial' else ('Yeniden denenecek' if lower<=row['day']<=upper else 'Aralık dışında')
+                self.errors.insert('','end',iid='doc'+str(row['id']),values=(row['day'],row['title'],state,row['error']))
             for row in days:
-                self.errors.insert('','end',values=(row['day'],'İlan dizini','Yeniden denenecek',row['error']))
-        self.summary.set(f"{len(rows)} eşleşen PDF     •     {counts.get('done',0)+counts.get('partial',0)} okunan PDF     •     {counts.get('pending',0)+counts.get('processing',0)} bekleyen     •     {done_days} gün tarandı     •     {missing} gün henüz bulunamadı")
+                self.errors.insert('','end',values=(row['day'],'İlan dizini','Yeniden denenecek' if lower<=row['day']<=upper else 'Aralık dışında',row['error']))
+        self.summary.set(f"{len(rows)} eşleşen PDF     •     {counts.get('done',0)+counts.get('partial',0)} okunan PDF     •     {pending} aralıkta bekleyen     •     {len(scanned)} gün tamamlandı")
         log=self.store.directory/'uygulama.log'
         if log.exists():
             with log.open('rb') as stream:
@@ -302,9 +330,13 @@ class Desktop:
 
     def save(self):
         try:
-            start=dt.date.fromisoformat(self.start.get().strip())
-            if start>today() or start<dt.date(2000,1,1):
-                raise ValueError('Başlangıç tarihi 2000 ile bugün arasında olmalı.')
+            days=int(self.scan_days.get())
+            maximum=(today()-dt.date(2000,1,1)).days+1
+            if not 1<=days<=maximum:
+                raise ValueError(f'Gün sayısı 1–{maximum} arasında olmalı.')
+            preserve_grant=days==self.store.scan_days() and days>7 and self.admin_key is None
+            if days>7 and self.admin_key is None and not preserve_grant:
+                raise PermissionError('Normal kullanıcı en fazla 7 gün seçebilir. Önce yönetici girişi yapın.')
             interval=int(self.interval.get())
             if not 5<=interval<=1440:
                 raise ValueError('Kontrol aralığı 5–1440 dakika arasında olmalı.')
@@ -312,13 +344,75 @@ class Desktop:
             if not terms or len(terms)>50:
                 raise ValueError('1–50 arama kelimesi girin.')
             autostart(self.startup.get())
-            for key,value in [('start_date',start.isoformat()),('interval_minutes',interval),('terms',terms),('autostart',self.startup.get())]:
+            if not preserve_grant:
+                self.store.set_scan_days(days,self.admin_key)
+            for key,value in [('interval_minutes',interval),('terms',terms),('autostart',self.startup.get())]:
                 self.store.set_setting(key,value)
+            self.update_range_summary()
             self.reindex_requested.set()
             self.engine.wake.set()
             self.status.set('Ayarlar kaydedildi; geçmiş metinler de yeni kelimelerle filtrelenecek')
+            return True
         except Exception as exc:
             messagebox.showerror('Ayarlar kaydedilemedi',str(exc),parent=self.root)
+            return False
+
+    def update_range_summary(self):
+        days=self.store.scan_days()
+        self.range_summary.set(f'Bugün dahil son {days} gün' + (' • yönetici onaylı' if days>7 else ' • 1–7 gün sınırı açık'))
+
+    def scan_selected(self):
+        if self.save():
+            self.store.set_setting('paused',False)
+            self.pause_button.configure(text='Duraklat')
+            self.engine.wake.set()
+            self.status.set(f'Bugün dahil son {self.store.scan_days()} gün taranacak; tamamlanan PDF’ler atlanacak')
+
+    def toggle_admin(self):
+        if self.admin_key is not None:
+            self.admin_key=None
+            self.store.set_scan_days(min(7,self.store.scan_days()))
+            self.scan_days.set(str(self.store.scan_days()))
+            self.days_input.configure(to=7,state='readonly')
+            self.admin_button.configure(text='Yönetici girişi')
+            self.admin_state.set('Yönetici modu kapalı. 1–7 gün sınırı yeniden etkin.')
+            self.update_range_summary()
+            self.engine.wake.set()
+            return
+        if time.monotonic()<self.admin_retry_after:
+            messagebox.showerror('Yönetici girişi','Çok sayıda hatalı deneme. Bir dakika sonra yeniden deneyin.',parent=self.root)
+            return
+        if not self.vault.available():
+            messagebox.showinfo('Yönetici kilidi','Bu Windows hesabında proje sahibinin yönetici anahtarı yok. '
+                                'Dağıtılan uygulama yeni bir yönetici hesabı oluşturamaz.',parent=self.root)
+            return
+        try:
+            if self.vault.needs_password():
+                password=simpledialog.askstring('İlk yönetici kurulumu','Size özel yönetici anahtarı bulundu. En az 12 karakterlik bir parola belirleyin:',show='*',parent=self.root)
+                if password is None:
+                    return
+                confirm=simpledialog.askstring('Yönetici parolası','Parolayı tekrar yazın:',show='*',parent=self.root)
+                if confirm is None:
+                    return
+                if password!=confirm:
+                    raise ValueError('Parolalar eşleşmiyor.')
+                key=self.vault.create_password(password)
+            else:
+                password=simpledialog.askstring('Yönetici girişi','Yönetici parolanız:',show='*',parent=self.root)
+                if password is None:
+                    return
+                key=self.vault.unlock(password)
+            self.admin_key=key
+            self.admin_failures=0
+            self.days_input.configure(state='normal',to=(today()-dt.date(2000,1,1)).days+1)
+            self.admin_button.configure(text='Yönetici modunu kapat ve kilitle')
+            self.admin_state.set('Yönetici modu açık. 7 günden fazla bir gün sayısı girip Kaydet ve tara düğmesine basabilirsiniz.')
+        except Exception as exc:
+            self.admin_failures+=1
+            if self.admin_failures>=5:
+                self.admin_retry_after=time.monotonic()+60
+                self.admin_failures=0
+            messagebox.showerror('Yönetici girişi',str(exc),parent=self.root)
 
     def export(self):
         path=filedialog.asksaveasfilename(parent=self.root,defaultextension='.csv',initialfile='eslesen-ilanlar.csv',filetypes=[('CSV','*.csv')])

@@ -15,3 +15,7 @@ seed_verified_data.py
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.dpapi
+owner.json

@@ -12,11 +12,13 @@ import sqlite3
 import threading
 import time
 import unicodedata
+import uuid
 from contextlib import contextmanager
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
+from .access import NORMAL_MAX_DAYS, sign_grant, valid_grant
 
 ROOT = 'https://www.resmigazete.gov.tr'
 DEFAULT_TERMS = ['KPSS', 'lisans', 'bilişim', 'bilgisayar', 'yazılım']
@@ -100,7 +102,8 @@ class Store:
             CREATE TABLE IF NOT EXISTS notices(doc INTEGER PRIMARY KEY);
             CREATE INDEX IF NOT EXISTS hits_doc ON hits(doc);
             ''')
-        defaults = {'start_date': (today()-dt.timedelta(days=29)).isoformat(),
+        defaults = {'start_date': (today()-dt.timedelta(days=6)).isoformat(),
+                    'scan_days': 7, 'admin_grant': None, 'installation_id': str(uuid.uuid4()),
                     'terms': DEFAULT_TERMS, 'interval_minutes': 30,
                     'paused': False, 'autostart': True}
         for key, value in defaults.items():
@@ -125,6 +128,34 @@ class Store:
     def set_setting(self, key, value):
         with self.connect() as db:
             db.execute('INSERT OR REPLACE INTO settings VALUES(?,?)', (key, json.dumps(value)))
+
+    def scan_days(self):
+        requested = self.setting('scan_days')
+        maximum = (today()-dt.date(2000,1,1)).days+1
+        if type(requested) is not int or not 1 <= requested <= maximum:
+            return NORMAL_MAX_DAYS
+        if requested <= NORMAL_MAX_DAYS:
+            return requested
+        return requested if valid_grant(self.setting('admin_grant'), self.setting('installation_id'), requested) else NORMAL_MAX_DAYS
+
+    def scan_start(self):
+        return today()-dt.timedelta(days=self.scan_days()-1)
+
+    def in_scan_range(self, day):
+        if isinstance(day, str):
+            day=dt.date.fromisoformat(day)
+        return self.scan_start() <= day <= today()
+
+    def set_scan_days(self, days, private_key=None):
+        maximum = (today()-dt.date(2000,1,1)).days+1
+        if type(days) is not int or not 1 <= days <= maximum:
+            raise ValueError(f'Gün sayısı 1–{maximum} arasında olmalı.')
+        if days > NORMAL_MAX_DAYS and private_key is None:
+            raise PermissionError('7 günden eski taramalar için proje yöneticisi yetkisi gerekir.')
+        grant = sign_grant(private_key,self.setting('installation_id'),days) if days > NORMAL_MAX_DAYS else None
+        with self.connect() as db:
+            db.executemany('INSERT OR REPLACE INTO settings VALUES(?,?)',
+                           [('scan_days',json.dumps(days)),('admin_grant',json.dumps(grant))])
 
     def results(self):
         with self.connect() as db:
@@ -179,6 +210,10 @@ class Stopped(Exception):
     pass
 
 
+class OutsideScanRange(Exception):
+    pass
+
+
 class Engine:
     def __init__(self, store, callback=None, notification=None):
         self.store, self.callback, self.notification = store, callback, notification
@@ -228,6 +263,8 @@ class Engine:
             return b''.join(chunks)
 
     def discover(self, day):
+        if not self.store.in_scan_range(day):
+            return
         now = time.time()
         with self.store.connect() as db:
             old = db.execute('SELECT * FROM days WHERE day=?', (day.isoformat(),)).fetchone()
@@ -272,6 +309,8 @@ class Engine:
     def process(self, doc):
         import pymupdf
         self.check_stop()
+        if not self.store.in_scan_range(doc['day']):
+            return
         with self.store.connect() as db:
             db.execute("UPDATE documents SET status='processing', updated=? WHERE id=?", (time.time(),doc['id']))
         try:
@@ -300,6 +339,8 @@ class Engine:
                     raise ValueError('PDF sayfa içermiyor')
                 for i,page in enumerate(pdf):
                     self.check_stop()
+                    if not self.store.in_scan_range(doc['day']):
+                        raise OutsideScanRange()
                     # Uzun geçmiş taramasında yeni günlük ilanların keşfi beklemesin.
                     if (not self.store.setting('paused') and
                             time.monotonic()-self.live_checked >= self.store.setting('interval_minutes')*60):
@@ -320,10 +361,11 @@ class Engine:
                 review = db.execute("SELECT COUNT(*) FROM pages WHERE hash=? AND quality!='ok'", (digest,)).fetchone()[0]
                 db.execute('UPDATE documents SET status=?,error=?,retry=0,updated=? WHERE id=?',
                            ('partial' if review else 'done',f'{review} sayfada OCR kesinliği düşük veya okunabilir metin yok; kontrol gerekli.' if review else None,time.time(),doc['id']))
-        except Stopped:
+        except (Stopped, OutsideScanRange):
             with self.store.connect() as db:
                 db.execute("UPDATE documents SET status='pending' WHERE id=?",(doc['id'],))
-            raise
+            if self.stop.is_set():
+                raise Stopped()
         except Exception as exc:
             attempts = doc['attempts']+1
             delay = min(86400, 60*(2**min(attempts,10)))
@@ -366,9 +408,8 @@ class Engine:
             # Çökme/elektrik kesintisinde yarım kalan dosyalar sayfa önbelleğiyle sürdürülür.
             with self.store.connect() as db:
                 db.execute("UPDATE documents SET status='pending' WHERE status='processing'")
-            start = dt.date.fromisoformat(self.store.setting('start_date'))
             day = today()
-            while day >= start:
+            while day >= self.store.scan_start():
                 self.check_stop()
                 if self.store.setting('paused'):
                     self.report('Tarama duraklatıldı')
@@ -389,7 +430,7 @@ class Engine:
             if self.store.setting('paused'):
                 break
             with self.store.connect() as db:
-                doc = db.execute("SELECT * FROM documents WHERE status IN ('pending','error') AND retry<=? ORDER BY day DESC,id LIMIT 1",(time.time(),)).fetchone()
+                doc = db.execute("SELECT * FROM documents WHERE status IN ('pending','error') AND retry<=? AND day>=? AND day<=? ORDER BY day DESC,id LIMIT 1",(time.time(),self.store.scan_start().isoformat(),today().isoformat())).fetchone()
             if doc is None:
                 break
             self.process(doc)
