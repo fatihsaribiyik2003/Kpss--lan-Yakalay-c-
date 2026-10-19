@@ -121,7 +121,11 @@ class Desktop:
         style.configure('TButton',padding=(12,8))
         style.configure('Primary.TButton',background='#225acb',foreground='white',padding=(14,9))
         style.map('Primary.TButton',background=[('disabled','#dce2ec'),('active','#1849aa')],foreground=[('disabled','#7b879b')])
-        style.configure('TNotebook.Tab',padding=(16,9))
+        style.configure('TNotebook.Tab',padding=(16,9),background='#e8edf5',foreground='#18243c',expand=(0,0,0,0))
+        style.map('TNotebook.Tab',padding=[],expand=[],
+                  background=[('selected','#225acb'),('active','#dce6f7')],
+                  foreground=[('selected','white')],
+                  lightcolor=[('selected','#225acb'),('!selected','#e8edf5')])
         style.configure('Filter.TRadiobutton',padding=(12,9),background='#e8edf5',foreground='#18243c',indicatoron=False)
         style.map('Filter.TRadiobutton',background=[('selected','#225acb')],foreground=[('selected','white')])
         style.configure('Treeview',rowheight=34,font=('Segoe UI',10),background='white',fieldbackground='white')
