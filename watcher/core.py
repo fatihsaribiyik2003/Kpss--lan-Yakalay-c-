@@ -19,6 +19,7 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from .access import NORMAL_MAX_DAYS, sign_grant, valid_grant
+from .candidate import analyze, default_profile, fingerprint, ANALYSIS_VERSION
 
 ROOT = 'https://www.resmigazete.gov.tr'
 DEFAULT_TERMS = ['KPSS', 'lisans', 'bilişim', 'bilgisayar', 'yazılım']
@@ -100,11 +101,16 @@ class Store:
               doc INTEGER, page INTEGER, term TEXT, excerpt TEXT,
               UNIQUE(doc,page,term,excerpt));
             CREATE TABLE IF NOT EXISTS notices(doc INTEGER PRIMARY KEY);
+            CREATE TABLE IF NOT EXISTS candidate_reviews(
+              doc INTEGER PRIMARY KEY, version INTEGER NOT NULL, fingerprint TEXT NOT NULL,
+              category TEXT NOT NULL, payload TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS hits_doc ON hits(doc);
             ''')
         defaults = {'start_date': (today()-dt.timedelta(days=6)).isoformat(),
                     'scan_days': 7, 'admin_grant': None, 'installation_id': str(uuid.uuid4()),
                     'terms': DEFAULT_TERMS, 'interval_minutes': 30,
+                    'candidate_profile':default_profile(today()),
+                    'profile_view':'Önerilen + kontrol gereken', 'profile_route':'Her iki yol',
                     'paused': False, 'autostart': True}
         for key, value in defaults.items():
             with self.connect() as db:
@@ -166,6 +172,22 @@ class Store:
     def failures(self):
         with self.connect() as db:
             return db.execute("SELECT * FROM documents WHERE status IN ('error','partial') ORDER BY day DESC").fetchall()
+
+    def profile_results(self):
+        current=fingerprint(self.setting('candidate_profile'))
+        with self.connect() as db:
+            rows=db.execute('''SELECT d.*,r.payload,r.category,
+              (SELECT GROUP_CONCAT(DISTINCT term) FROM hits WHERE doc=d.id) terms
+              FROM documents d JOIN candidate_reviews r ON r.doc=d.id
+              WHERE d.status IN ('done','partial') AND r.version=? AND r.fingerprint=?
+              ORDER BY d.day DESC,d.id DESC''',(ANALYSIS_VERSION,current)).fetchall()
+        result=[]
+        for row in rows:
+            item=dict(row)
+            item['assessment']=json.loads(item.pop('payload'))
+            item['hit_pages']=','.join(str(p) for p in item['assessment']['pages'])
+            result.append(item)
+        return result
 
     def scanned_days(self):
         with self.connect() as db:
@@ -383,19 +405,42 @@ class Engine:
             for page in pages:
                 for hit in matches(page['text'],terms):
                     db.execute('INSERT OR IGNORE INTO hits VALUES(?,?,?,?)',(doc_id,page['page'],hit['term'],hit['excerpt']))
+        self.review_profile(doc_id,digest)
+
+    def review_profile(self, doc_id, digest):
+        profile=self.store.setting('candidate_profile')
+        with self.store.connect() as db:
+            pages=db.execute('SELECT * FROM pages WHERE hash=? ORDER BY page',(digest,)).fetchall()
+        result=analyze(pages,profile)
+        with self.store.connect() as db:
+            db.execute('INSERT OR REPLACE INTO candidate_reviews VALUES(?,?,?,?,?)',
+                       (doc_id,ANALYSIS_VERSION,fingerprint(profile),result['category'],json.dumps(result,ensure_ascii=False)))
+
+    def refresh_profile(self):
+        profile_hash=fingerprint(self.store.setting('candidate_profile'))
+        with self.store.connect() as db:
+            docs=db.execute('''SELECT d.id,d.hash FROM documents d LEFT JOIN candidate_reviews r ON r.doc=d.id
+              WHERE d.hash IS NOT NULL AND d.status IN ('done','partial')
+              AND (r.doc IS NULL OR r.version!=? OR r.fingerprint!=?)''',(ANALYSIS_VERSION,profile_hash)).fetchall()
+        if docs:
+            self.report(f'{len(docs)} kayıtlı PDF aday profiline göre değerlendiriliyor • yeniden indirme/OCR yapılmaz')
+        for doc in docs:
+            self.check_stop()
+            self.review_profile(doc['id'],doc['hash'])
 
     def reindex(self):
         # Kelimeler değişince PDF indirme/OCR tekrarı yok; saklanan metin kullanılır.
         with self.store.connect() as db:
-            docs = db.execute('SELECT id,hash FROM documents WHERE hash IS NOT NULL').fetchall()
+            docs = db.execute("SELECT id,hash FROM documents WHERE hash IS NOT NULL AND status IN ('done','partial')").fetchall()
         for doc in docs:
             self.check_stop()
             self.index(doc['id'],doc['hash'])
 
     def notify(self):
         with self.store.connect() as db:
-            rows = db.execute('''SELECT DISTINCT d.id,d.title FROM documents d JOIN hits h ON h.doc=d.id
-                WHERE d.id NOT IN (SELECT doc FROM notices)''').fetchall()
+            rows = db.execute('''SELECT DISTINCT d.id,d.title FROM documents d JOIN candidate_reviews r ON r.doc=d.id
+                WHERE r.category IN ('pre_match','review') AND d.day>=? AND d.day<=?
+                AND d.id NOT IN (SELECT doc FROM notices)''',(self.store.scan_start().isoformat(),today().isoformat())).fetchall()
         if rows and self.notification:
             if self.notification(len(rows),rows[0]['title']):
                 with self.store.connect() as db:
@@ -405,6 +450,7 @@ class Engine:
         if not self.lock.acquire(blocking=False):
             return
         try:
+            self.refresh_profile()
             # Çökme/elektrik kesintisinde yarım kalan dosyalar sayfa önbelleğiyle sürdürülür.
             with self.store.connect() as db:
                 db.execute("UPDATE documents SET status='pending' WHERE status='processing'")
@@ -427,6 +473,7 @@ class Engine:
     def drain(self):
         while True:
             self.check_stop()
+            self.refresh_profile()
             if self.store.setting('paused'):
                 break
             with self.store.connect() as db:

@@ -6,7 +6,8 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 
 - Normal kullanıcı, bugün dahil son **1–7 günü** seçebilir. Varsayılan 7 gündür; aralık her gün bugüne göre hesaplanır ve zamanla geriye doğru büyümez.
 - Proje yöneticisi, özel anahtarı ve parolasıyla 7 gün sınırını kaldırabilir. Seçilen geniş aralık bu kuruluma ve cihaza bağlı bir dijital imzayla yetkilendirilir.
-- Varsayılan olarak **KPSS, lisans, bilişim, bilgisayar, yazılım** kelimelerini arar. Kelimelerden birinin geçmesi yeterlidir.
+- Bilgisayar Mühendisliği lisans mezunu, KPSS puanı olan ve başlangıçta İngilizce/dil belgesi olmayan aday profiline göre ön filtre uygular. Mühendislik/bilişim ve genel lisans memur/idari kadro yollarını birlikte değerlendirir.
+- Kelimeler ek işaret olarak saklanır; genel memur ilanı yalnızca bilişim sözcüğü geçmiyor diye elenmez.
 - PDF metnini okur; görüntü içeren sayfalarda bilgisayar üzerinde OCR çalıştırır. Ücretli API anahtarı gerekmez.
 - İşlenmiş PDF'leri tekrar indirmez. Aynı içerik farklı bir bağlantıyla yayımlanırsa kayıtlı sayfa metinlerini kullanır.
 - Yarım kalan işlemleri kaldığı yerden sürdürür; indirme ve okuma hatalarını otomatik yeniden dener.
@@ -15,6 +16,20 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 - Sistem tepsisinde çalışır, yeni eşleşmelerde bildirim gösterir. Windows oturumu açıldığında otomatik başlayabilir.
 
 Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki eksik günleri tamamlar. Aralık dışındaki eski bekleyen dosyalar işlenmez; önceden okunmuş ilanlar korunur. Kontrol aralığı varsayılan olarak 30 dakikadır.
+
+## 1.2 revizyonu: aday profiline göre filtre
+
+**Profil / Filtre** sekmesinde diploma Bilgisayar Mühendisliği lisans olarak tanımlıdır. KPSS puanı olduğu varsayılır; sayısal puan, puan türü ve sınav yılı başlangıçta bilinmiyor bırakılır. İstenirse doldurulabilir. Deneyim süresi de bilinmiyor kabul edilir; sertifika veya ehliyetin bulunduğu varsayılmaz.
+
+İngilizce bilgisi ve dil belgesi ayrı kutulardır; ikisi de başlangıçta kapalıdır. Üç ay sonrası dil öğrenme hedefi olarak kaydedilir. Bu tarih geldiğinde İngilizce veya belge otomatik kazanılmış sayılmaz; kullanıcı gerçekten edindiğinde günceller. İngilizce öğrenmek tek başına YDS/TOEFL gibi bir belge/puan şartını karşıladığı anlamına gelmez.
+
+Sonuçlarda **Ön eşleşme**, **Kontrol gerekli**, **Dil koşulu var**, **Profil dışında** ve **Alım ilanı değil** ayrımı vardır. Varsayılan görünüm ön eşleşmeleri ve kontrol gerekenleri birlikte gösterir. Meslek yolu **Mühendis / bilişim**, **Genel memur / idari** veya **Her iki yol** olarak seçilebilir; kurum türüne göre eleme yapılmaz.
+
+Mezuniyet ifadeleri ve bağlam içindeki nitelik kodları değerlendirilir. Genel lisans 4001 ve Bilgisayar Mühendisliğini kapsayan 4531 kodları için [ÖSYM 2026/1 nitelik tablosu](https://dokuman.osym.gov.tr/pdfdokuman/2026/KPSS/TERCIH1/lisans-nitelik_t1d03072026.pdf) referans alınmıştır. Kodun geçtiği belge veya listedeki başka bir kadro, bütün pozisyonların aynı koşula sahip olduğu anlamına gelmez.
+
+Filtre kural tabanlı ve ihtiyatlıdır; özellikle düz metne dönüşmüş tabloların her kadrosunu kesin ayırdığını iddia etmez. Bir PDF'de farklı kadrolar veya çelişkili koşullar varsa belge bütünü elenmek yerine kontrol listesinde tutulabilir. Yabancı dil puanı olmayanların sıfır puanla değerlendirileceği ifadeler zorunlu belge şartıyla aynı sayılmaz. Bilinmeyen KPSS koşulları, deneyim, ek belge ve OCR belirsizliği açıklama olarak gösterilir. Başvuru tarihleri ve bütün özel şartlar ayrıca doğrulanmalıdır.
+
+Seçilen kaydın altında neden listelendiği, dayanak metin ve sayfa numarası bulunur. Görünüm filtreleri anında uygulanır. Profil kaydedildiğinde saklanan sayfa metinleri yeniden değerlendirilir; PDF indirme/OCR tekrarlanmaz. Bildirimler yalnızca seçili tarama aralığındaki ön eşleşme/kontrol kayıtları içindir. CSV dışa aktarımı ekranda gösterilen kayıtları ve kontrol notlarını içerir. Puan ve profil ayarları yalnızca yerel veritabanına kaydedilir.
 
 ## 1.1 revizyonu: kullanıcı sınırı ve proje yöneticisi
 
@@ -78,6 +93,7 @@ Ayrıntılar için [kullanım kılavuzunu](KULLANIM.md) okuyun.
 | `watcher/core.py` | İlan keşfi, PDF/OCR, SQLite kayıtları ve otomatik takip |
 | `watcher/desktop.py` | Masaüstü arayüzü, sistem tepsisi ve başlangıç ayarı |
 | `watcher/calendar_widget.py` | Taranan günleri gösteren takvim |
+| `watcher/candidate.py` | Meslek, genel lisans, KPSS ve dil koşulları için açıklanabilir aday ön filtresi |
 | `watcher/access.py` | Yönetici anahtar kasası ve imzalı tarama yetkileri |
 | `watcher/admin_public_key.py` | Dağıtılabilen açık doğrulama anahtarı |
 | `tools/provision_admin.py` | Yalnızca proje sahibinin ilk anahtar hazırlığı; uygulama paketine dahil edilmez |
