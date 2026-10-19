@@ -20,6 +20,18 @@ Bir ilanı seçtiğinde neden listelendiği, kontrol edilmesi gereken şartlar v
 
 Profil değişikliğinde eski metinler yeniden değerlendirilir; indirme/OCR tekrarlanmaz. Varsayılan görünüm dışındaki kayıtlar silinmez. CSV, ekranda görünen kayıtları ve kontrol notlarını aktarır. Profil bilgileriniz ve puanınız GitHub'a gönderilmez.
 
+## Başvurduğun ilanları saklama
+
+1. Başvurunu kurumun resmî sisteminde tamamla.
+2. Uygulamada ilgili ilanı seçip **Başvurdum** düğmesine bas.
+3. İlanın Başvuru sütununda **Başvuruldu** görünür. Açıklamada işaretleme tarihi yer alır.
+4. Sonradan bulmak için listenin üzerindeki **Başvurduklarım** düğmesini kullan. Burada da başlık/tarihle arama yapabilirsin.
+5. Yanlış işaretlediysen ilanı seçip **Başvuruyu geri al** düğmesine bas; ilan silinmez.
+
+Profil ve tarama aralığı değişse de bu işaretler korunur. CSV'ye başvuru durumu ve tarih de eklenir. Uygulama hangi kadroya başvurduğunu kurumdan doğrulamaz; aynı PDF'de birden fazla kadro varsa PDF'nin tamamını işaretler. Başvuru işareti kabul/kazanma sonucu değildir. Kullanıcı işaretlemeden otomatik başvuru yapılmış sayılmaz.
+
+Filtrelerin 1.4 sürümündeki denetim sonuçları ve bilinen sınırlar [doğrulama raporundadır](DOGRULAMA.md).
+
 ## Proje yöneticisi kilidi
 
 7 günden eski tarama yalnızca proje sahibinin özel anahtarıyla yetkilendirilir. Sizin Windows hesabınıza bu anahtarın ilk kurulum kaydı hazırlanmıştır. Parola henüz belirlenmemişse **Tarama aralığı → Yönetici girişi** düğmesine ilk basışta en az 8 karakterlik parolanızı belirleyin. Parola önceden tanımlanmışsa doğrudan parolanızla giriş yapın. Parolanın kendisi kaydedilmez; rastgele tuzlu PBKDF2-SHA256 özeti (600.000 tur) yerel kayıtta tutulur. Özel anahtar ayrıca parola ile şifrelenir. Yönetici modunda daha büyük bir gün sayısı girip kaydedebilirsiniz; tarih sınırı 2000 yılının başıdır.

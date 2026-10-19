@@ -104,6 +104,8 @@ class Store:
             CREATE TABLE IF NOT EXISTS candidate_reviews(
               doc INTEGER PRIMARY KEY, version INTEGER NOT NULL, fingerprint TEXT NOT NULL,
               category TEXT NOT NULL, payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS applications(
+              doc INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS hits_doc ON hits(doc);
             ''')
         defaults = {'start_date': (today()-dt.timedelta(days=6)).isoformat(),
@@ -201,7 +203,8 @@ class Store:
     def listing_results(self):
         """Tüm keşfedilen PDF'ler; ön filtre okumayı bekleyenleri gizlemez."""
         with self.connect() as db:
-            rows=[dict(r) for r in db.execute('SELECT * FROM documents ORDER BY day DESC,id DESC')]
+            rows=[dict(r) for r in db.execute('''SELECT d.*,a.applied_at FROM documents d
+              LEFT JOIN applications a ON a.doc=d.id ORDER BY d.day DESC,d.id DESC''')]
         reviews={r['id']:r for r in self.profile_results()}
         for row in rows:
             result=reviews.get(row['id'])
@@ -210,13 +213,23 @@ class Store:
                        hit_pages=result['hit_pages'] if result else '')
         return rows
 
+    def set_applied(self, doc_id, applied=True):
+        with self.connect() as db:
+            if not db.execute('SELECT 1 FROM documents WHERE id=?',(doc_id,)).fetchone():
+                raise ValueError('İlan bulunamadı.')
+            if applied:
+                stamp=dt.datetime.now(dt.timezone(dt.timedelta(hours=3))).isoformat(timespec='seconds')
+                db.execute('INSERT OR IGNORE INTO applications VALUES(?,?)',(doc_id,stamp))
+            else:
+                db.execute('DELETE FROM applications WHERE doc=?',(doc_id,))
+
 
 class Reader:
     def __init__(self):
         self.ocr = None
 
     def page(self, page):
-        text = page.get_text('text', sort=True).strip()
+        text = page.get_text('text', sort=False).strip()
         image_area = sum(r.get('bbox', (0,0,0,0))[2] and
                          max(0, r['bbox'][2]-r['bbox'][0])*max(0,r['bbox'][3]-r['bbox'][1])
                          for r in page.get_image_info())
@@ -428,6 +441,40 @@ class Engine:
             db.execute('INSERT OR REPLACE INTO candidate_reviews VALUES(?,?,?,?,?)',
                        (doc_id,ANALYSIS_VERSION,fingerprint(profile),result['category'],json.dumps(result,ensure_ascii=False)))
 
+    def refresh_text_order(self):
+        """Bir defalık yerel metin sırası onarımı; indirme ve OCR yapmaz."""
+        if self.store.setting('text_order_version')==1:
+            return
+        import pymupdf
+        with self.store.connect() as db:
+            docs=db.execute("SELECT hash,path FROM documents WHERE hash IS NOT NULL AND status IN ('done','partial') GROUP BY hash").fetchall()
+        changed=0
+        for doc in docs:
+            self.check_stop()
+            path=Path(doc['path']) if doc['path'] else None
+            if path and not path.exists():
+                path=self.store.directory/'pdf'/path.name
+            if not path or not path.exists():
+                continue
+            try:
+                with pymupdf.open(path) as pdf, self.store.connect() as db:
+                    for i,page in enumerate(pdf,1):
+                        native=page.get_text('text',sort=False).strip()
+                        old=db.execute('SELECT text,method FROM pages WHERE hash=? AND page=?',(doc['hash'],i)).fetchone()
+                        if not old or not native:
+                            continue
+                        text=native if old['method']=='metin' else native+'\n'+old['text']
+                        db.execute('UPDATE pages SET text=? WHERE hash=? AND page=?',(text,doc['hash'],i))
+                        changed+=1
+                # Eski değerlendirme, düzeltilmiş metinden tekrar üretilmeli.
+                with self.store.connect() as db:
+                    db.execute('DELETE FROM candidate_reviews WHERE doc IN (SELECT id FROM documents WHERE hash=?)',(doc['hash'],))
+            except (OSError,RuntimeError) as exc:
+                self.log.warning('Yerel metin sırası onarılamadı: %s',exc)
+        self.store.set_setting('text_order_version',1)
+        if changed:
+            self.report(f'{changed} sayfanın yerel metin sırası düzeltildi • indirme/OCR yapılmadı')
+
     def refresh_profile(self):
         profile_hash=fingerprint(self.store.setting('candidate_profile'))
         with self.store.connect() as db:
@@ -441,6 +488,7 @@ class Engine:
             self.review_profile(doc['id'],doc['hash'])
 
     def reindex(self):
+        self.refresh_text_order()
         # Kelimeler değişince PDF indirme/OCR tekrarı yok; saklanan metin kullanılır.
         with self.store.connect() as db:
             docs = db.execute("SELECT id,hash FROM documents WHERE hash IS NOT NULL AND status IN ('done','partial')").fetchall()
@@ -462,6 +510,7 @@ class Engine:
         if not self.lock.acquire(blocking=False):
             return
         try:
+            self.refresh_text_order()
             self.refresh_profile()
             # Çökme/elektrik kesintisinde yarım kalan dosyalar sayfa önbelleğiyle sürdürülür.
             with self.store.connect() as db:

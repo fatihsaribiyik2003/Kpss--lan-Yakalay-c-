@@ -17,6 +17,12 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 
 Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki eksik günleri tamamlar. Aralık dışındaki eski bekleyen dosyalar işlenmez; önceden okunmuş ilanlar korunur. Kontrol aralığı varsayılan olarak 30 dakikadır.
 
+## 1.4 revizyonu: başvuru takibi ve filtre denetimi
+
+İlanı seçip **Başvurdum** düğmesine basınca işaret ve işaretleme tarihi yerel veritabanına kaydedilir. Listede **Başvuruldu** görünür; **Başvurduklarım** düğmesiyle bu ilanlar bulunur. **Başvuruyu geri al** yalnızca işareti kaldırır; PDF korunur. Profil veya tarama aralığı değişikliği başvuru kaydını silmez. CSV aktarımı başvuru durumunu/tarihini de içerir. Bu bir kullanıcı işaretidir; kuruma otomatik başvuru veya kabul onayı değildir.
+
+Mevcut dosyaların özgün metin sırası bir kez onarılır; OCR/indirme tekrarlanmaz. Dil sınav belgesi ve İngilizce bilgisi ayrımı, çoklu alım/kadro bölümleri, ön lisans/lisans ayrımı ve akademik düzeltme/iptal tanıması düzeltildi. Akademisyen görünümü ilgili düzeltme/iptalleri ayrı etiketle gösterir. Ayrıntılı yöntem, bulgular ve sınırlar [doğrulama raporundadır](DOGRULAMA.md).
+
 ## 1.3 revizyonu: ilan listesindeki filtre çubuğu
 
 **İlanlar / PDF’ler** sekmesinde üç düğmeli filtre çubuğu bulunur:

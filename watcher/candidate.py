@@ -6,8 +6,8 @@ import json
 import re
 import unicodedata
 
-ANALYSIS_VERSION = 5
-CATEGORY_LABELS = {'pre_match':'Ön eşleşme', 'review':'Kontrol gerekli',
+ANALYSIS_VERSION = 7
+CATEGORY_LABELS = {'notice':'Düzeltme / iptal duyurusu','pre_match':'Ön eşleşme', 'review':'Kontrol gerekli',
                    'language':'Dil koşulu var', 'outside':'Profil dışında', 'other':'Alım ilanı değil'}
 ROUTE_LABELS = {'technical':'Mühendis / bilişim', 'general':'Genel memur / idari',
                 'mixed':'Bilişim + genel kadro', 'unknown':'Alanı kontrol et'}
@@ -33,7 +33,7 @@ def norm(text):
     return ''.join(c for c in unicodedata.normalize('NFKD',text) if not unicodedata.combining(c))
 
 
-def analyze(pages, profile):
+def _analyze(pages, profile):
     evidence=[]
     normalized=[]
     low_quality=False
@@ -49,6 +49,8 @@ def analyze(pages, profile):
     language_optional=[]
     language_mention=False
     language_document_required=False
+    knowledge_required=False
+    formal_required=False
     kpss_scores=[]
     kpss_types=set()
     kpss_years=set()
@@ -67,16 +69,18 @@ def analyze(pages, profile):
         low_quality |= page['quality']!='ok'
         # Kodlar sadece mezuniyet/nitelik bağlamında kullanılır.
         qualification=bool(re.search(r'nitelik|ogrenim|mezun|aranan sart',text))
-        c=re.search(r'bilgisayar\s*muhendis\w*[^.;]{0,650}(?:mezun|lisans)',text)
-        c=c or re.search(r'(?:mezun|lisans)[^.;]{0,170}bilgisayar\s*muhendis\w*',text)
+        c=re.search(r'bilgisayar\s*m[ui]hendis\w*[^.;]{0,650}(?:mezun|lisans)',text)
+        c=c or re.search(r'(?:mezun|lisans)[^.;]{0,170}bilgisayar\s*m[ui]hendis\w*',text)
         if not c and re.search(r'bolumler|ogrenim|mezuniyet|dort yillik|lisans',text):
-            c=re.search(r'bilgisayar\s*muhendis\w*',text)
+            c=re.search(r'bilgisayar\s*m[ui]hendis\w*',text)
         if c or (qualification and re.search(r'\b4531\b',text)):
             computer=True
             m=c or re.search(r'\b4531\b',text)
             record(number,'Mezuniyet',clean[max(0,m.start()-50):m.end()+130])
-        b=re.search(r'(?:herhangi|tum|butun)\s+bir?\s*(?:lisans|fakulte|yuksekogretim)[^.;]{0,130}mezun',text)
-        b=b or re.search(r'herhangi\s+bir\s+[^.;]{0,45}lisans\s+program[^.;]{0,65}mezun',text)
+        b=re.search(r'(?:herhangi\s*bir|tum|butun)\s*(?:lisans|fakulte|yuksekogretim)[^.;]{0,130}mezun',text)
+        b=b or re.search(r'herhangi\s+bir\s+(?:(?:universite|fakulte|yuksekogretim)\w*\s+){1,4}lisans\s+program[^.;]{0,65}mezun',text)
+        if b and re.search(r'\bon\s*lisans',b.group()):
+            b=None
         if b or (qualification and re.search(r'\b4001\b',text)):
             broad=True
             m=b or re.search(r'\b4001\b',text)
@@ -99,6 +103,15 @@ def analyze(pages, profile):
                     tail=re.split(r'\bkpss\b',value[anchor.start():anchor.end()+200],maxsplit=1)[0]
                     language_windows.append(tail)
                 required=any(re.search(r'en az\s*\d+|asgari\s*\d+|zorunlu|sart(?:i|ini|tir)|almis olmak|bilmek|belgelemek|belgelendirmek|gerekli',window) for window in language_windows)
+                # Dil belgesinin sıfır puan sayılması, İngilizce bilme şartını kaldırmaz.
+                knowledge=bool(re.search(r'ingilizce\s*(?:bilmek|bilgisine\s*sahip\s*olmak)',value))
+                formal_windows=[re.split('kpss',compact[m.start():m.end()+440],maxsplit=1)[0] for m in re.finditer(r'yds|yokdil|toefl|yabancidil',compact)]
+                formal=any(re.search(r'(?:enaz\(?[abc0-9]|asgari\(?[abc0-9]|(?:belgeye|puana)[^.;]{0,90}sahipol|puanalmi[sş]olmak)',w) for w in formal_windows)
+                preferred=bool(re.search(r'tercihen[^.;]{0,140}(?:ingilizce|yds|yabanci\s*dil)|(?:dil|ingilizce)[^.;]{0,80}tercih sebebi',value))
+                knowledge_required |= knowledge and not preferred
+                formal_required |= formal and not optional and not preferred
+                required |= knowledge or formal
+                optional |= preferred
                 if optional:
                     language_optional.append(number)
                     record(number,'Dil: zorunlu olmayabilir',re.sub(r'\s+',' ',clause))
@@ -110,6 +123,8 @@ def analyze(pages, profile):
                     record(number,'Dil bilgisi kontrolü',re.sub(r'\s+',' ',clause))
             if 'kpss' in value:
                 kpss_types.update('P'+m for m in re.findall(r'\bkpss\s*[-/]?\s*p\s*(\d+)\b',value))
+                for listing in re.finditer(r'\bkpss\s*[-/]?\s*(p\s*\d+(?:\s*[,/]|\s+veya|\s+ve)?(?:\s*p\s*\d+\s*[,/]*\s*)*)',value):
+                    kpss_types.update('P'+m for m in re.findall(r'p\s*(\d+)',listing.group(1)))
                 kpss_years.update(int(y) for y in re.findall(r'\b(20\d{2})\b',value))
                 for anchor in re.finditer(r'\bkpss\b',value):
                     window=re.split(r'\byds\b|\byokdil\b|\btoefl\b|yabanci\s*dil|ingilizce',value[anchor.start():anchor.end()+230],maxsplit=1)[0]
@@ -131,8 +146,11 @@ def analyze(pages, profile):
     # OCR kopyası ve ek sayfalardaki açık alım/düzeltme ifadeleri de taranır.
     compact_text=re.sub(r'\s+','',text)
     academic |= bool(re.search(r'(?:ogretim(?:uyesi|uyeleri|elemani|elemanlari|gorevlisi|gorevlileri)|arastirmagorevlisi|akademikpersonel)[^.;]{0,140}(?:alim|alinac|atanacak|basvuru|duzeltme|iptal)',compact_text))
+    if re.search(r'(?:iptal|duzeltme)\s*ilani',head[:800]) and re.search(r'ogretim\s*(?:uyesi|elemani|gorevlisi)|profesor|docent',text):
+        academic=True
     hiring=bool(re.search(r'personel\w*\s+(?:alim|alinacak)|memur\w*\s+(?:alim|alinacak)|is[cç]i\w*\s+alim|bilisim personeli giris sinavi|ogretim\s+(?:uyesi|elemani)[^.;]{0,45}alinacaktir|kadro[^.;]{0,65}personel[^.;]{0,45}alinacaktir',head))
     hiring |= bool(re.search(r'(?:muhendis|programci|uzman(?: yardimcisi)?|buro personeli|bilgisayar isletmeni)\w*\s+(?:alim|alinacak)',head))
+    hiring |= bool(re.search(r'(?:uzman|mufettis|denetci|avukat)[^.;]{0,90}(?:girissinaviilani|sinavilani|alimilani)',re.sub(r'\s+','',head)))
     hiring |= academic or ('kpss' in text and 'mezun' in text and (technical or general))
     route='mixed' if (technical or computer) and (general or broad) else ('technical' if technical or computer else ('general' if general or broad else 'unknown'))
     reasons=[]
@@ -158,8 +176,18 @@ def analyze(pages, profile):
         reasons.append('Kadro alanı ilgili olabilir ancak bilgisayar mühendisliği/genel lisans kabulü kesin çıkarılamadı.')
     relevant=category in ('pre_match','review')
     if relevant:
-        if language_required:
-            if profile.get('language_certificate') or (not language_document_required and profile.get('english_available')):
+        if language_required or knowledge_required or formal_required:
+            if knowledge_required and not profile.get('english_available'):
+                reasons.append('İngilizce bilme şartı bulundu. Dil belgesine sıfır puan verilmesi bu şartı kaldırmaz.')
+                category='language'
+            elif formal_required and not profile.get('language_certificate'):
+                reasons.append('Zorunlu dil sınavı/belge şartı bulundu; profilinizde dil belgesi yok.')
+                if route=='mixed':
+                    reasons.append('Kadro şartları ayrıştırılamadı; PDF bütünü elenmedi ancak KPSS ön eşleşmesi kabul edilmedi.')
+                    category='review'
+                else:
+                    category='language'
+            elif profile.get('language_certificate') or (not language_document_required and profile.get('english_available')):
                 reasons.append('Dil şartı var; belgenin türü, puanı ve geçerliliği kontrol edilmeli.' if language_document_required else 'İngilizce bilgisi şartı var; kurumun istediği seviye ve değerlendirme yöntemi kontrol edilmeli.')
                 category='review'
             elif language_optional or route=='mixed' or mixed_scope:
@@ -212,19 +240,83 @@ def analyze(pages, profile):
         kpss_match=False
     if kpss_types and profile.get('kpss_type') and profile['kpss_type'] not in kpss_types:
         kpss_match=False
+    if formal_required and not profile.get('language_certificate'):
+        kpss_match=False
+    if knowledge_required and not profile.get('english_available'):
+        kpss_match=False
+    notice_kind='cancel' if 'iptal ilani' in head[:800] else ('correction' if 'duzeltme ilani' in head[:800] else 'announcement')
+    if notice_kind!='announcement':
+        kpss_match=False
+        category='notice'
+        reasons.insert(0,'Bu kayıt bir iptal/düzeltme duyurusudur; yeni ve açık bir alım olarak yorumlanmadı.')
     return {'category':category,'route':route,'reasons':reasons,'evidence':evidence,
-            'academic_hiring':academic,'kpss_match':kpss_match,
+            'academic_hiring':academic,'kpss_match':kpss_match,'notice_kind':notice_kind,
             'pages':sorted({e['page'] for e in evidence}),
             'language_required':bool(language_required),'language_optional':bool(language_optional),
             'language_document_required':language_document_required,
+            'knowledge_required':knowledge_required,'formal_required':formal_required,
             'kpss_types':sorted(kpss_types),'kpss_minimums':sorted(set(kpss_scores)),
             'computer_degree':computer,'general_bachelor':broad,
             'note':'Otomatik ön filtre; kesin başvuru uygunluğu kararı değildir.'}
 
 
+def analyze(pages, profile):
+    """Ayrı alım metinleri ve açık bilişim kadro başlıklarını ayrı değerlendirir."""
+    pages=list(pages)
+    groups=[]
+    current=[]
+    last_kind=None
+    for page in pages:
+        head=re.sub(r'\s+','',norm(page['text'][:850]))
+        kind='it' if re.search(r'sozlesmelibilisimpersoneli(?:alim|girissinavi|sinavilani)',head) else ('assistant' if 'uzmanyardimciligigirissinaviilani' in head else None)
+        if current and kind and last_kind and kind!=last_kind:
+            groups.append(current); current=[]
+        current.append(page)
+        if kind: last_kind=kind
+    if current: groups.append(current)
+    blocks=[]
+    titles=[]
+    for group in groups:
+        joined='\n'.join(p['text'] for p in group)
+        normalized=norm(joined)
+        roles=list(re.finditer(r'(?m)^\s*\d{1,2}\s*[.)]\s*[^\n(]{0,130}(?:uzmani|mimari)\s*\(',normalized))
+        if len(roles)<2 or not re.search(r'bilisim\s*personel',normalized):
+            blocks.append(group)
+            titles.append(re.sub(r'\s+',' ',' '.join(group[0]['text'].splitlines()[:3]))[:160])
+            continue
+        offsets=[]; cursor=0
+        for page in group:
+            offsets.append((cursor,cursor+len(page['text']),page)); cursor+=len(page['text'])+1
+        def fragments(start,end):
+            return [dict(page=p['page'],quality=p['quality'],text=p['text'][max(0,start-a):min(b,end)-a])
+                    for a,b,p in offsets if a<end and b>start]
+        common=fragments(0,roles[0].start())
+        for i,role in enumerate(roles):
+            end=roles[i+1].start() if i+1<len(roles) else len(joined)
+            blocks.append(common+fragments(role.start(),end))
+            titles.append(re.sub(r'\s+',' ',joined[role.start():role.end()]).strip().rstrip('(').strip())
+    outcomes=[_analyze(block,profile) for block in blocks] or [_analyze([],profile)]
+    if len(outcomes)==1:
+        return outcomes[0]
+    eligible=[r for r in outcomes if r['kpss_match']]
+    result=dict(eligible[0] if eligible else outcomes[0])
+    result['academic_hiring']=any(r['academic_hiring'] for r in outcomes)
+    result['kpss_match']=bool(eligible)
+    result['scope_count']=len(outcomes)
+    result['scope_results']=[{'title':title,'pages':r['pages'],'category':r['category'],'kpss_match':r['kpss_match'],'reasons':r['reasons']} for title,r in zip(titles,outcomes)]
+    result['reasons']=[f'PDF {len(outcomes)} ayrı alım/kadro bölümü olarak değerlendirildi; {len(eligible)} bölüm KPSS ön filtresinde kaldı.']+result['reasons']
+    if eligible:
+        result['reasons'].insert(1,'KPSS ön filtresinde kalan bölümler: '+'; '.join(title for title,r in zip(titles,outcomes) if r['kpss_match']))
+    result['evidence']=[e for r in (eligible or outcomes) for e in r['evidence']][:36]
+    result['pages']=sorted({e['page'] for e in result['evidence']})
+    return result
+
+
 def listing_matches(item, mode='all', route='Her iki yol', query=''):
     """Liste görünümü; filtresiz modda okunmamış kayıtlar da görünür."""
     review=item.get('assessment') or {}
+    if mode=='applied' and not item.get('applied_at'):
+        return False
     if mode=='kpss':
         if not review.get('kpss_match'):
             return False
