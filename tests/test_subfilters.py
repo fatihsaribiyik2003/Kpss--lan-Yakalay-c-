@@ -7,6 +7,13 @@ from watcher.catalog import ACADEMIC_ALL,ACADEMIC_ENGINEERING,ACADEMIC_UNKNOWN
 
 
 class SubfilterTests(unittest.TestCase):
+    def test_displayed_and_iso_dates_both_search_without_bypassing_group(self):
+        item={'day':'2026-10-19','title':'Büro ilanı','catalog':{'kpss_related':True,'jobs':['admin']}}
+        for query in ('19.10.2026','2026-10-19'):
+            self.assertTrue(listing_matches(item,'kpss',query=query))
+            self.assertFalse(listing_matches(item,'academic',query=query))
+        self.assertFalse(listing_matches(item,query='18.10.2026'))
+
     def row(self,text,**profile):
         p=default_profile(dt.date(2026,10,19));p.update(profile)
         result=analyze([{'page':1,'text':text,'quality':'ok'}],p)

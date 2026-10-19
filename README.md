@@ -17,11 +17,19 @@ Windows üzerinde çalışan, Resmî Gazete'nin **Çeşitli İlanlar** bölümü
 
 Bilgisayar kapalıyken çalışmaz; açılınca yalnızca seçili aralıktaki eksik günleri tamamlar. Aralık dışındaki eski bekleyen dosyalar işlenmez; önceden okunmuş ilanlar korunur. Kontrol aralığı varsayılan olarak 30 dakikadır.
 
+## 1.7 revizyonu: sade kullanım
+
+Ana ekran dört sekmeye indirildi: **İlanlar, Profilim, Tarama, Ayarlar ve yardım**. İlanlar sekmesindeki **Tümü / KPSS / Akademik / Başvurduklarım** düğmelerinin yanında kayıt sayıları bulunur. Kişisel değerlendirme sütunu yalnız **KPSS → Profilime göre** seçildiğinde açılır. Genel listede kişisel profil durumu gösterilmez; filtreleme kuralları 1.6 ile aynıdır.
+
+**Aramayı sil** seçili grubu korur; **Tüm ilanlara dön** bütün seçimleri sıfırlar. Başvurular yeşil satırla işaretlenir. **Ayrıntıları büyüt** kaynak metinlerini ayrı, okunaklı bir pencerede açar. Ctrl+F aramaya, Enter seçili PDF'ye gider. Profil ve ayar sayfaları küçük pencerelerde kaydırılabilir. Teknik günlük, okuma sorunları ve CSV aktarımı **Ayarlar ve yardım** içindedir.
+
+**Yeni ilanları kontrol et**, takip duraklatılmışsa takibi de devam ettirir. Üst çubukta otomatik takibin açık/duraklatılmış durumu yazılıdır. Profil ve başvuru kayıtları güncellemede korunur.
+
 ## 1.6 revizyonu: KPSS ve akademik alt filtreler
 
 **KPSS ilanları** artık kişisel profile bakmadan KPSS ile ilgili alım/duyuruları gösterir. Alt filtreler: **Hiçbiri (tüm KPSS)**, **Mühendislik / bilişim**, **Düz memur / idari**, **Diğer kadrolar**, **Profilime göre**. “Hiçbiri” alt filtre uygulamamak demektir; listeyi boşaltmaz. Mühendislik seçimi yalnız Bilgisayar Mühendisliğiyle sınırlı değildir. İdari/destek aileleri farklı öğrenim düzeyleri içerebilir. Bunlar belge türü/alan etiketleridir; başvuru uygunluğu onayı değildir.
 
-Kişisel puan, yıl, dil ve deneyim elemesi **KPSS → Profilime göre** seçeneğinde korunur. Profil kaydetme bu seçeneği açar. Genel KPSS veya akademik listeler kişisel profile göre daralmaz. Kişisel ön filtre sütunu bu nedenle genel listede “Profil dışında” gösterebilir.
+Kişisel puan, yıl, dil ve deneyim elemesi **KPSS → Profilime göre** seçeneğinde korunur. Profil kaydetme bu seçeneği açar. Genel KPSS veya akademik listeler kişisel profile göre daralmaz.
 
 **Akademisyen alımları** altında **Hiçbiri (tüm akademik)**, **Mühendislik (tümü)**, kayıtlı belgelerde tanınan alanlar ve **Alanı net okunamayanlar** vardır. Bilgisayar, Yazılım, Makine, Elektrik/Elektronik vb. alanlar için şart ifadesiyle bağlantı aranır. Sadece bölüm başlığı geçmesi yeterli sayılmaz. İlan seçildiğinde eşleşen alan, sayfa ve kaynak metin gösterilir. Aynı PDF farklı kadrolar içerdiğinde birden fazla alanda listelenebilir; iptal/düzeltme etiketleri korunur. Alanı çıkarılamayan kayıtlar silinmez.
 

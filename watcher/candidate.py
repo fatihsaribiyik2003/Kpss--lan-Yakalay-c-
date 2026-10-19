@@ -371,4 +371,11 @@ def listing_matches(item, mode='all', route='Hiçbiri (tüm KPSS)', query=''):
         if route==ACADEMIC_UNKNOWN and fields: return False
         if route not in (ACADEMIC_ALL,ACADEMIC_ENGINEERING,ACADEMIC_UNKNOWN,'Her iki yol','Hiçbiri (tüm KPSS)') and route not in fields: return False
     needle=norm(query.strip())
-    return not needle or needle in norm(' '.join(str(item.get(key) or '') for key in ('title','day','terms')))
+    if not needle:
+        return True
+    try:
+        display_day=dt.date.fromisoformat(str(item.get('day',''))).strftime('%d.%m.%Y')
+    except ValueError:
+        display_day=''
+    haystack=' '.join(str(item.get(key) or '') for key in ('title','day','terms'))+' '+display_day
+    return needle in norm(haystack)

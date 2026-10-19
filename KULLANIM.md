@@ -1,46 +1,51 @@
-# KPSS İlan Yakalayıcı
+# KPSS İlan Yakalayıcı — kullanım
 
-Windows 10/11 için otomatik Resmî Gazete ilan takibi. Hazır EXE, PDF okuma motorunu ve OCR modellerini içerir; kullanıcıda Python veya bir API anahtarı gerekmez.
+Windows 10/11 üzerinde otomatik Resmî Gazete ilan takibi. Hazır uygulama PDF/OCR motorlarını içerir; Python veya ücretli API anahtarı gerekmez.
 
-## Açılış
+## Üç adımda kullanım
 
-Masaüstündeki **KPSS İlan Yakalayıcı** kısayolunu veya bu klasördeki **BASLAT.bat** dosyasını çift tıklayın. Kurulu uygulama `%LOCALAPPDATA%\Programs\KPSSIlanYakalayici` klasöründedir. Hazır taşınabilir paket `dist/KPSS-Ilan-Yakalayici` klasöründedir; taşırken EXE ile birlikte `_internal` klasörü de taşınmalıdır.
+1. Masaüstündeki **KPSS İlan Yakalayıcı** kısayolunu aç. Yeni ilanları kontrol etmek için üstteki düğmeye basabilirsin; otomatik takip açıkken uygulama kendisi de kontrol eder.
+2. **İlanlar** sekmesinde bir grup seç, ilanı seçip **PDF’yi aç** düğmesine bas. Çift tıklama veya Enter da PDF'yi açar. Uzun açıklamaları **Ayrıntıları büyüt** ile okuyabilirsin.
+3. Kurumun sisteminde başvurunu tamamladıktan sonra **Başvurdum** düğmesine bas. Yeşil işaretlenen ilanı sonra **Başvurduklarım** altında bulabilirsin.
 
-İlk açılışta bugün dahil son **7 gün** taranır. **Tarama aralığı** sekmesinden **1–7 gün** seçip **Seçilen aralığı kaydet ve tara** düğmesine basabilirsiniz. Ana liste başlangıçta bütün keşfedilen ilanları gösterir; filtre çubuğundan KPSS veya akademisyen alımları seçilebilir. Aralık her gün bugüne göre hesaplanır; uygulama açık kaldıkça daha eskiye doğru büyümez. Eski sürümden güncellemede de 7 gün sınırı otomatik uygulanır.
+## Hangi düğme ne gösterir?
 
-## Sana göre ilanlar
+| Görünüm | Gösterilen belgeler |
+|---|---|
+| **Tümü** | Okunmayı bekleyenler dahil bütün kayıtlar |
+| **KPSS → Hiçbiri (tüm KPSS)** | Kişisel profile bakmadan bütün KPSS bağlantılı ilanlar |
+| **KPSS → Mühendislik / bilişim** | Mühendislik veya bilişim kadroları içeren KPSS belgeleri |
+| **KPSS → Düz memur / idari** | İdari/destek kadroları içeren KPSS belgeleri |
+| **KPSS → Diğer kadrolar** | Diğer KPSS kadroları |
+| **KPSS → Profilime göre** | Kaydettiğin puan, yıl, dil ve deneyim bilgilerine göre kişisel ön adaylar |
+| **Akademik** | Akademik alımlar ve ilgili düzeltme/iptal duyuruları |
+| **Başvurduklarım** | Senin başvuru işareti koyduğun ilanlar |
 
-**1.6 sürümünde:** KPSS düğmesi artık bütün KPSS ilanlarını açar. Hemen altında **Alt filtre** çubuğu görünür. **Hiçbiri (tüm KPSS)** hepsini gösterir; mühendislik/bilişim, düz memur/idari veya diğer kadroları seçebilirsin. **Profilime göre** seçeneği kişisel puan/dil/deneyim elemesini uygular. Genel KPSS listesinde kendi bölümün dışındaki veya dil şartı bulunan ilanların da görünmesi normaldir.
+“Hiçbiri” alt filtreyi kaldırır; sonuçları boşaltmaz. Genel mühendislik seçimi yalnız Bilgisayar Mühendisliğiyle sınırlı değildir. Akademik görünümde aranan mezuniyet alanını seçebilirsin. **Alanı net okunamayanlar** seçeneği de vardır. Etiketlerin dayanak sayfası ve metni ilan ayrıntılarında görünür. Aynı belge birden fazla kadro içerebilir; grupların sayıları örtüşebilir.
 
-Akademisyen düğmesine geçince alt seçenekler akademik alanlara dönüşür. **Mühendislik (tümü)** veya Bilgisayar, Yazılım, Makine vb. tanınan alanları seçebilirsin. **Hiçbiri (tüm akademik)** tüm akademik kayıtları, **Alanı net okunamayanlar** ise alanı kesin çıkarılamayanları gösterir. İlan seçerek alan eşleşmesinin dayanak sayfasını/metnini oku; aynı PDF'deki bütün kadroların aynı koşulu taşıdığı varsayılmaz. Ana filtre değiştirilince eski alt seçim taşınmaz.
+**Kurum veya tarih ara** kutusu seçili grubu daraltır. **Aramayı sil** grubu korur; **Tüm ilanlara dön** aramayı ve tüm filtreleri kaldırır. Ctrl+F arama kutusuna geçer. Tarihi ekranda gördüğün `19.10.2026` veya `2026-10-19` biçiminde arayabilirsin.
 
-Profilini değiştirdikten sonra **Kaydet ve KPSS sonuçlarını göster** düğmesine bas. Uygulama KPSS listesine geçer; eski aramayı/meslek yolu seçimini temizler ve yeniden değerlendirme bitince önceki/sonraki PDF sayısını gösterir. Profil, Tüm ilanlar ve Akademisyen alımları görünümlerini daraltmaz. Deneyimin yoksa **0**, süresini belirtmek istemiyorsan alanı **boş** bırak. Bunlar aynı değildir. Açıkça okunan asgari deneyim ve KPSS sınav yılı uyuşmazlıkları da elenir. Her değişiklik sayıyı değiştirmek zorunda değildir; kayıtlı PDF içindeki uygun görülen kadrolar ve açıklamalar değişebilir.
+## Profilim
 
-Başlangıç profili: **Bilgisayar Mühendisliği lisans mezunu, KPSS puanı var, İngilizce bilgisi ve dil belgesi yok**. Kurum türüne göre eleme yapılmaz. Mühendislik/bilişim kadroları ile herhangi bir lisans mezununu kabul eden genel memur/idari kadrolar birlikte değerlendirilir.
+Bu sayfa yalnız **KPSS → Profilime göre** sonuçlarını etkiler. Genel KPSS ve Akademik listeler profile göre daralmaz. Bilgilerini değiştirdikten sonra **Kaydet ve profilime göre adayları göster** düğmesine bas; uygulama o görünümü açıp yeniden değerlendirme sonucunu gösterir.
 
-**Aday profilim** sekmesinde KPSS puanı, puan türü, sınav yılı ve deneyim süresini istersen doldurabilirsin. Boş alanlar bilinmiyor sayılır; koşulların karşılandığı varsayılmaz. Başlangıçta üç ay sonrası dil öğrenme hedefidir. Hedef tarih geldiğinde profil otomatik değişmez. İngilizce öğrendiğinde **İngilizce bilgim var**, ayrıca geçerli bir sınav sonucu/belge edindiğinde **Dil belgem / sınav sonucum var** kutusunu işaretle. Bunlar ayrı koşullardır.
+Başlangıç profili Bilgisayar Mühendisliği lisans mezunudur. Puan, puan türü, sınav yılı ve deneyimi istersen doldur. Boş alan bilinmiyor demektir; deneyim yoksa **0** gir. “İngilizce bilgim var” ile “Dil belgem / sınav sonucum var” farklı koşullardır. Dil hedef tarihi geldiğinde bu kutular kendiliğinden değişmez. Kaydettiğin mevcut bilgiler güncellemelerde korunur.
 
-PDF listesinin üzerindeki çubuktan **Tüm ilanlar**, **KPSS • profilime göre** ve **Akademisyen alımları** seçilir. Her açılışta Tüm ilanlar seçilidir; okunmamış ve profile uymayan kayıtlar da görünür. KPSS görünümü, KPSS ve mezuniyet dayanağı bulunan ilanları seçer; bilinen puan/tür uyumsuzlukları elenir, bilinmeyen şartlar kontrol notuyla korunabilir. Meslek yolu listesi yalnızca KPSS görünümünde çalışır. Akademisyen alımları kişisel lisans/dil profiline göre elenmez; üniversitenin idari alımı ayrı değerlendirilir. Düğmelerde ilan sayıları görünür. İlan ara alanı başlık/tarih/ek kelimelerde arar. **Filtreleri temizle** bütün kayıtları geri getirir. Bu filtreler tarama aralığını değiştirmez.
+## Başvurduklarım
 
-Bir ilanı seçtiğinde neden listelendiği, kontrol edilmesi gereken şartlar ve dayanak sayfalar görünür. Dil puanı olmayana sıfır verilmesi gibi ifadeler otomatik ret sayılmaz. Aynı PDF'deki farklı kadroların koşulları karışabiliyorsa bütün PDF elenmez; kontrol gerektiği belirtilir. Akademik kadrolar yalnızca lisans profiliyle uygun kabul edilmez. **Ön eşleşme kesin başvuru uygunluğu değildir**; ilgili kadro satırını, başvuru tarihlerini, puan türünü/yılını ve özel şartları doğrula.
+Başvurunu kurumun resmî sisteminde tamamla, ardından uygulamada ilanı seçip **Başvurdum** de. Başvuru sütunu ve yeşil satır işaretiyle bulabilirsin. Yanlış işaretlediysen **Başvuru işaretini kaldır** düğmesine bas; ilan korunur. Profil veya tarama aralığı değişince başvuruların silinmez.
 
-Profil değişikliğinde eski metinler yeniden değerlendirilir; indirme/OCR tekrarlanmaz. Varsayılan görünüm dışındaki kayıtlar silinmez. CSV, ekranda görünen kayıtları ve kontrol notlarını aktarır. Profil bilgileriniz ve puanınız GitHub'a gönderilmez.
+Bu işaret senin kaydındır; kurumun başvuru onayı veya kazanma sonucu değildir. Aynı PDF'de birkaç kadro varsa işaret bütün PDF'ye aittir.
 
-## Başvurduğun ilanları saklama
+## Tarama
 
-1. Başvurunu kurumun resmî sisteminde tamamla.
-2. Uygulamada ilgili ilanı seçip **Başvurdum** düğmesine bas.
-3. İlanın Başvuru sütununda **Başvuruldu** görünür. Açıklamada işaretleme tarihi yer alır.
-4. Sonradan bulmak için listenin üzerindeki **Başvurduklarım** düğmesini kullan. Burada da başlık/tarihle arama yapabilirsin.
-5. Yanlış işaretlediysen ilanı seçip **Başvuruyu geri al** düğmesine bas; ilan silinmez.
+**Tarama** sekmesinden bugün dahil son **1–7 günü** seçip **Seçilen aralığı kaydet ve tara** düğmesine bas. Daha eski günler yönetici yetkisi gerektirir. Aralık uygulama açık kaldıkça geriye doğru büyümez; önceki ilanlar listeden silinmez.
 
-Profil ve tarama aralığı değişse de bu işaretler korunur. CSV'ye başvuru durumu ve tarih de eklenir. Uygulama hangi kadroya başvurduğunu kurumdan doğrulamaz; aynı PDF'de birden fazla kadro varsa PDF'nin tamamını işaretler. Başvuru işareti kabul/kazanma sonucu değildir. Kullanıcı işaretlemeden otomatik başvuru yapılmış sayılmaz.
-
-Filtrelerin 1.4 sürümündeki denetim sonuçları ve bilinen sınırlar [doğrulama raporundadır](DOGRULAMA.md).
+Üstte otomatik takibin açık veya duraklatılmış olduğu yazılıdır. **Yeni ilanları kontrol et** düğmesi duraklatılmış takibi de devam ettirir. Kurulu uygulama `%LOCALAPPDATA%\Programs\KPSSIlanYakalayici` içindedir. Taşınabilir paketi taşırken EXE ile `_internal` klasörü birlikte taşınmalıdır.
 
 ## Proje yöneticisi kilidi
 
-7 günden eski tarama yalnızca proje sahibinin özel anahtarıyla yetkilendirilir. Sizin Windows hesabınıza bu anahtarın ilk kurulum kaydı hazırlanmıştır. Parola henüz belirlenmemişse **Tarama aralığı → Yönetici girişi** düğmesine ilk basışta en az 8 karakterlik parolanızı belirleyin. Parola önceden tanımlanmışsa doğrudan parolanızla giriş yapın. Parolanın kendisi kaydedilmez; rastgele tuzlu PBKDF2-SHA256 özeti (600.000 tur) yerel kayıtta tutulur. Özel anahtar ayrıca parola ile şifrelenir. Yönetici modunda daha büyük bir gün sayısı girip kaydedebilirsiniz; tarih sınırı 2000 yılının başıdır.
+7 günden eski tarama yalnızca proje sahibinin özel anahtarıyla yetkilendirilir. Sizin Windows hesabınıza bu anahtarın ilk kurulum kaydı hazırlanmıştır. Parola henüz belirlenmemişse **Tarama → Yönetici girişi** düğmesine ilk basışta en az 8 karakterlik parolanızı belirleyin. Parola önceden tanımlanmışsa doğrudan parolanızla giriş yapın. Parolanın kendisi kaydedilmez; rastgele tuzlu PBKDF2-SHA256 özeti (600.000 tur) yerel kayıtta tutulur. Özel anahtar ayrıca parola ile şifrelenir. Yönetici modunda daha büyük bir gün sayısı girip kaydedebilirsiniz; tarih sınırı 2000 yılının başıdır.
 
 Yetkilendirilen geniş aralık, yeniden başlatma sonrasında otomatik takip için korunur. Geniş aralığı değiştirmek için yeniden yönetici girişi gerekir. **Yönetici modunu kapat ve kilitle** düğmesi geniş yetkiyi kaldırıp aralığı en fazla 7 güne düşürür. Normal kullanıcı daha geniş yetkiyi kendisi oluşturamaz; uygulamada ortak bir varsayılan yönetici parolası yoktur.
 
@@ -61,25 +66,25 @@ Yetkilendirilen geniş aralık, yeniden başlatma sonrasında otomatik takip iç
 
 ## Arka planda çalışma
 
-Pencerenin **X** düğmesi uygulamayı sistem tepsisine indirir; tarama devam eder. Tepsi simgesine çift tıklayarak pencereyi açabilirsiniz. **Tamamen çık** uygulamayı sonlandırır. **Duraklat** seçimi kalıcıdır; devam etmek için **Devam et** düğmesine basılır.
+Pencerenin **X** düğmesi uygulamayı sistem tepsisine indirir; tarama devam eder. Tepsi simgesine çift tıklayarak pencereyi açabilirsiniz. **Ayarlar ve yardım → Genel ve yardım → Uygulamayı tamamen kapat** uygulamayı sonlandırır. **Duraklat** seçimi kalıcıdır; devam etmek için **Devam et** veya **Yeni ilanları kontrol et** düğmesine basılır.
 
 Windows oturumu açıldığında otomatik başlatma varsayılan olarak açıktır. Ayarlardan kapatılabilir. Başlangıç kaydı yalnızca mevcut Windows kullanıcısının `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\KPSSIlanYakalayici` anahtarına yazılır. Windows yönetici hesabı gerekmez; bu, uygulamanın proje yöneticisi kilidinden ayrı bir konudur. Bilgisayar kapalıyken veya kullanıcı oturumu açılmamışken çalışmaz; açıldığında yalnızca seçili aralıkta kalan eksik günleri tamamlar. İnternet kesintisinde kayıtlar korunur, sonraki kontrolde yeniden denenir.
 
 ## Sonuçları okuma
 
-- **İlanlar / PDF’ler:** tarih, kurum, meslek yolu, profil ön filtresi ve sayfa numaraları; seçince gerekçe ve dayanak metin görünür. PDF’yi açmak için çift tıklayın.
-- **İşlem durumu:** indirme/okuma hataları, OCR kesinliği düşük dosyalar ve erişilemeyen dizinler. Okunamayan dosya “eşleşme yok” olarak değerlendirilmez.
-- **Günlük:** yapılan son işlemler. Uzun tarama sırasında o anki PDF ve sayfa altta görünür.
-- **Tarama takvimi:** sağ alt köşedeki takvimde, PDF taraması biten günlerin altında küçük mavi nokta görünür. Bekleyen veya hata durumundaki PDF’leri olan günler henüz işaretlenmez. Okunmuş ancak OCR kontrolü gereken PDF’ler ayrıca İşlem durumu sekmesinde gösterilir. Oklarla ay değiştirebilir, **Bu ay** düğmesiyle güncel aya dönebilirsiniz.
-- **CSV dışa aktar:** ekranda görünen ilanları Excel ile açılabilir biçimde kaydeder.
+- **İlanlar:** tarih, kurum/ilan, ilan türü ve başvuru durumu. Kişisel değerlendirme sütunu yalnız KPSS → Profilime göre seçilince görünür. “Şartları incele” hata değildir; bilinmeyen veya özel koşulları PDF'den doğrula. “Ön aday” kesin uygunluk onayı değildir.
+- **Ayarlar ve yardım → Okuma sorunları:** indirme/okuma hataları ve OCR kontrolü gereken dosyalar. Okunamayan belge “eşleşme yok” sayılmaz; Tümü görünümünde korunur.
+- **Ayarlar ve yardım → Teknik günlük:** son tarama işlemleri.
+- **Tarama takvimi:** sağdaki mavi noktalar taraması biten günleri gösterir. Oklarla ayı değiştir, Bu ay ile geri dön.
+- **Ayarlar ve yardım → Genel ve yardım → Görünen ilanları CSV’ye aktar:** yalnız ekrandaki sonuçları ve başvuru işaretlerini kaydeder. Uzun sayfaları fare tekerleği veya sağdaki kaydırma çubuğuyla kaydırabilirsin.
 
-Kelime eşleşmesi, başvuru şartlarını karşıladığınız anlamına gelmez. Türkçe harflerin aksansız OCR karşılıkları ve kelime ekleri aranır. Görüntü kalitesi düşük belgelerde OCR hataları olabilir; kaynağın başvuru şartlarını kontrol edin. Aynı URL’deki dosyanın sonradan değiştirilmesi otomatik tespit edilmez; mevcut tasarım tamamlanmış PDF’leri yeniden indirmez.
+Kelime eşleşmesi veya alan etiketi başvuru şartlarını karşıladığın anlamına gelmez. Aynı PDF'de farklı koşullara sahip kadrolar olabilir. Görüntü kalitesi düşük belgelerde OCR hataları olabilir. Aynı URL'deki dosyanın sonradan değişmesi otomatik tespit edilmez; tamamlanmış PDF'ler yeniden indirilmez.
 
 ## Kayıtlar ve kaldırma
 
 PDF’ler, sayfa metinleri, ayarlar ve işlem günlüğü `%LOCALAPPDATA%\KPSSIlanYakalayici` klasöründe tutulur. Ayarlardaki **Veri klasörünü aç** düğmesi bu klasörü açar. Dosyalar buluta gönderilmez; resmî sunucuya yalnızca sayfa/PDF indirme istekleri yapılır.
 
-Kaldırmak için önce Ayarlar’dan otomatik başlangıcı kapatın, **Tamamen çık** düğmesine basın. Ardından uygulama klasörünü ve kısayolları silebilirsiniz. Verileri saklamak istiyorsanız veri klasörünü silmeyin.
+Kaldırmak için önce Ayarlar’dan otomatik başlangıcı kapatın, **Uygulamayı tamamen kapat** düğmesine basın. Ardından uygulama klasörünü ve kısayolları silebilirsiniz. Verileri saklamak istiyorsanız veri klasörünü silmeyin.
 
 ## Geliştirme
 

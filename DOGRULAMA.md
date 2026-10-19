@@ -1,4 +1,11 @@
-# 1.4 filtre ve başvuru takibi denetimi
+# Filtre, başvuru takibi ve arayüz denetimi
+
+## 1.7 sade kullanım denetimi
+
+- 84 otomatik test geçti. Yeni işlem testi, duraklatılmış takipte elle kontrol isteğinin taramayı gerçekten devam ettirdiğini; profil ve başvuru kayıtlarını değiştirmediğini doğrular. Tarih araması hem ekrandaki 19.10.2026 hem 2026-10-19 biçiminde test edildi; grup seçimini aşmaz.
+- Ayrı test verisiyle gerçek Tk arayüzü çalıştırıldı. 1000×700 ve 1200×800 pencere boyutlarında ana işlem düğmelerinin erişilebilirliği kontrol edildi. Kaydırılabilir yardım ekranı Windows üzerinde ayrıca gözle incelendi.
+- İlanlar → KPSS → Mühendislik → Profilime göre → Akademik → Bilgisayar geçişlerinde sayılar ve sütun görünürlüğü kontrol edildi. Arama/temizleme, boş sonuçta düğmelerin kapanması, başvuru işaretleme/geri alma ve büyük ayrıntı penceresi test edildi.
+- Filtre motoru değiştirilmedi; 112 kayıt üzerindeki 1.6 alt filtre sayıları korundu. Kullanım kolaylığı değerlendirmesi geliştirici kontrolüdür; bağımsız kullanıcı çalışması yapılmadı.
 
 ## 1.6 alt filtre ve unutulan belge denetimi
 
